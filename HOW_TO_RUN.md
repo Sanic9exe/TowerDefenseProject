@@ -1,4 +1,4 @@
-# How to Run the Tower Defense Game
+# How to Run the Tower Defense Game - Enhanced Edition
 
 ## Installation
 
@@ -22,53 +22,79 @@ python main.py
 
 ## How to Play
 
-### Objective
-Defend the path from enemies! Survive 10 waves to win.
+### Game Modes
+When you start, you'll select a difficulty and game mode:
+- **Easy (Press 1)**: Enemies have 70% health, you start with $700
+- **Normal (Press 2)**: Standard experience, start with $500
+- **Hard (Press 3)**: Enemies have 150% health, earn 2x money, includes air units
+- **Endless (Press E)**: Infinite waves, survive as long as possible!
 
 ### Controls
 - **SPACE**: Start game / Pause/Unpause
 - **ESC**: Deselect tower type or selected tower
 - **R**: Restart game (on game over/victory screen)
-- **Mouse**: Click to select and place towers
+- **Mouse**: Click to select, place, and interact with towers
+- **1/2/3/E**: Select difficulty/mode at start screen
 
 ### Game Mechanics
 
 1. **Placing Towers**
-   - Click on a tower button at the top (Arrow, Cannon, or Laser)
+   - Click on an unlocked tower button (top of screen)
    - Move your mouse over the grid (a ghost tower will appear)
    - Click on a valid cell (green outline) to place the tower
    - Green cells are buildable, red cells are blocked
 
-2. **Tower Types**
-   - **Arrow Tower ($100)**: Fast fire rate, low damage, cheap
+2. **Tower Types** (unlock progressively)
+   - **Arrow Tower ($100)**: Fast fire rate, low damage, good starter
    - **Cannon Tower ($200)**: Slow fire rate, high damage
-   - **Laser Tower ($300)**: Very fast fire rate, medium damage, longest range
+   - **Laser Tower ($300)**: Very fast, medium damage, can hit air units
+   - **Freeze Tower ($250)**: Unlocks wave 3, slows enemies
+   - **Splash Tower ($350)**: Unlocks wave 5, area damage
+   - **Sniper Tower ($400)**: Unlocks wave 7, long range, can hit air
 
-3. **Upgrading Towers**
+3. **Tower Management**
    - Click on a placed tower to select it
-   - Click the "Upgrade" button to improve its stats
-   - Towers can be upgraded up to level 3
+   - **Upgrade** button: Improve stats (up to level 3)
+   - **Sell** button: Get money back (full refund within 5 seconds if not fired)
+   - **Target** button: Cycle targeting modes
    - Each upgrade increases damage, range, and fire rate
 
-4. **Selling Towers**
-   - Select a tower
-   - Click the "Sell" button to get 75% of your investment back
+4. **Targeting Modes** (NEW!)
+   - **Closest**: Target nearest enemy to tower (default)
+   - **Strongest**: Target enemy with most health
+   - **Weakest**: Target enemy with least health
+   - **First**: Target enemy furthest along path
+   - **Last**: Target enemy at start of path
+   - **Nearest Exit**: Target enemy closest to end
+   - Click "Target" button on selected tower to cycle modes
 
-5. **Enemy Types**
-   - **Basic (Red)**: Normal speed and health, 20 gold reward
-   - **Fast (Yellow)**: High speed, low health, 15 gold reward
-   - **Tank (Dark Gray)**: Slow speed, high health, 50 gold reward
+5. **Selling Towers** (ENHANCED!)
+   - **Full Refund**: Sell within 5 seconds of placing (if tower hasn't fired)
+   - **90% Refund**: Sell tower that has never fired
+   - **75% Refund**: Standard refund rate
 
-6. **Resources**
-   - Starting money: $500
+6. **Enemy Types** (EXPANDED!)
+   - **Basic (Red)**: Normal speed and health, 20 gold
+   - **Fast (Yellow)**: High speed, low health, 15 gold
+   - **Tank (Dark Gray)**: Slow speed, high health, 50 gold
+   - **Shielded (Blue)**: Has shield that blocks 3 hits, 30 gold
+   - **Splitter (Orange)**: Splits into 2 smaller enemies on death, 25 gold
+   - **Air (Light Blue)**: Flies over path, needs anti-air towers, 35 gold (Hard mode)
+   - **Boss (Purple)**: Every 5 waves, massive health, regenerating shields, 200 gold
+
+7. **Resources**
+   - Starting money: Varies by difficulty ($400-$700)
    - Starting lives: 20
-   - Gain money by killing enemies
+   - Gain money by killing enemies (2x in Hard mode)
    - Lose lives when enemies reach the end of the path
 
-7. **Waves**
+8. **Waves**
    - Click "Next Wave" to start the next wave
+   - Click "Speed" button to toggle 1x/2x/3x game speed
    - Waves get progressively harder with more and tougher enemies
-   - Survive all 10 waves to win!
+   - Boss waves every 5 waves!
+   - **Normal Mode**: Survive 10 waves to win
+   - **Endless Mode**: Waves continue forever, see how long you last!
 
 ## Game Structure
 
@@ -84,10 +110,30 @@ The game is organized into several modules in the `game_src/` folder:
 - `game_src/ui.py`: User interface elements
 - `game_src/test_game.py`: Test suite
 
-## Tips
+## Strategy Tips
 
+### General Tips
 - Place towers at corners where enemies spend more time in range
 - Arrow towers are cheap and good for early waves
-- Laser towers have the longest range but are expensive
-- Upgrade your towers to handle stronger enemies
-- Don't forget to start the next wave when ready!
+- Save money for the boss waves (every 5 waves)
+- Use the "Sell" feature within 5 seconds to reposition misplaced towers
+- Upgrade strategic towers rather than building many weak ones
+- Use fast-forward (2x/3x speed) when confident to speed through waves
+
+### Targeting Strategy
+- Use "Strongest" targeting for boss enemies
+- Use "Nearest Exit" targeting to prevent enemies from escaping
+- Use "Weakest" targeting to eliminate enemies quickly for money
+- Mix targeting modes across different towers for optimal coverage
+
+### Enemy-Specific Tips
+- **Shielded enemies**: Need multiple hits, focus fire with several towers
+- **Splitter enemies**: Can overwhelm you, kill them early or far from exit
+- **Air units**: Require Laser or Sniper towers (can't be hit by others)
+- **Boss enemies**: Shields regenerate! Focus fire to break shields quickly
+
+### Difficulty-Specific
+- **Easy**: Great for learning, experiment with tower combinations
+- **Normal**: Balanced, requires good tower placement and upgrades
+- **Hard**: Air units appear! Build Laser/Sniper towers, use 2x money wisely
+- **Endless**: Prioritize upgrades and long-term defense, don't over-expand
