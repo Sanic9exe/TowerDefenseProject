@@ -2,6 +2,7 @@
 Wave system for spawning enemies
 """
 import pygame
+import random
 from config import *
 from enemy import Enemy
 
@@ -24,7 +25,6 @@ class Wave:
     
     def _generate_wave(self):
         """Generate enemies for this wave"""
-        import random
         
         # Boss wave
         if self.is_boss_wave:
@@ -88,7 +88,6 @@ class Wave:
             if self.spawn_timer >= delay:
                 enemy_type = self.spawn_queue.pop(0)
                 # Get difficulty multiplier
-                from config import DIFFICULTY_MODIFIERS
                 diff_mult = DIFFICULTY_MODIFIERS[self.difficulty]["enemy_health"]
                 enemy = Enemy(self.waypoints, enemy_type, diff_mult)
                 self.enemies.append(enemy)
@@ -123,7 +122,6 @@ class Wave:
         dead = [e for e in self.enemies if not e.alive]
         
         # Handle splitting enemies
-        from config import DIFFICULTY_MODIFIERS
         diff_mult = DIFFICULTY_MODIFIERS[self.difficulty]["enemy_health"]
         for enemy in dead:
             if enemy.splits:
