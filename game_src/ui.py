@@ -71,6 +71,7 @@ class UI:
         self.speed_button = Button(SCREEN_WIDTH - 150, 120, 130, 40, "Speed: 1x", YELLOW)
         self.barrier_button = Button(SCREEN_WIDTH - 150, 170, 130, 40, "Barrier\n$50", BROWN)
         self.auto_start_button = Button(SCREEN_WIDTH - 150, 220, 130, 40, "Auto: OFF", (200, 200, 0))
+        self.timewarp_button = Button(SCREEN_WIDTH - 150, 270, 130, 40, "TimeWarp\n$150", (100, 100, 255))
         
         # Tower action buttons (shown when tower selected) - repositioned lower
         self.upgrade_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 140, 130, 35, "Upgrade", GREEN)

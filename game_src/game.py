@@ -10,6 +10,7 @@ from projectile import Projectile
 from wave import Wave
 from ui import UI
 from barrier import Barrier
+from utility import TimeWarp
 from map_generator import generate_random_path, generate_multi_lane_paths
 
 class Game:
@@ -36,11 +37,13 @@ class Game:
         self.towers = []
         self.projectiles = []
         self.barriers = []  # Buildable barriers (hard mode)
+        self.time_warps = []  # Time warp utilities
         self.current_wave = None
         self.current_waves = []  # Multiple waves for multi-lane
         self.ui = UI()
         self.selected_tower = None
         self.placing_barrier = False  # For barrier placement mode
+        self.placing_time_warp = False  # For time warp placement
         
         # Grid for tower placement
         self.grid = [[None for _ in range(GRID_HEIGHT)] for _ in range(GRID_WIDTH)]
@@ -226,6 +229,15 @@ class Game:
             self.ui.auto_start_button.text = f"Auto: {'ON' if self.ui.auto_start_waves else 'OFF'}"
             return
         
+        # Check time warp button
+        if self.ui.timewarp_button.is_clicked(pos):
+            if self.money >= TIME_WARP_COST:
+                self.placing_time_warp = True
+                self.ui.selected_tower_type = None
+                self.selected_tower = None
+                self.placing_barrier = False
+            return
+        
         # Check tower action buttons if tower is selected
         if self.selected_tower:
             if self.ui.upgrade_button.is_clicked(pos):
@@ -251,8 +263,17 @@ class Game:
         grid_y = pos[1] // GRID_SIZE
         
         if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
+            # Place time warp
+            if self.placing_time_warp:
+                # Place at center of clicked cell
+                warp_x = grid_x * GRID_SIZE + GRID_SIZE // 2
+                warp_y = grid_y * GRID_SIZE + GRID_SIZE // 2
+                time_warp = TimeWarp(warp_x, warp_y)
+                self.time_warps.append(time_warp)
+                self.money -= TIME_WARP_COST
+                self.placing_time_warp = False
             # Place barrier
-            if self.placing_barrier:
+            elif self.placing_barrier:
                 if self._can_place_barrier(grid_x, grid_y):
                     barrier = Barrier(grid_x, grid_y)
                     self.barriers.append(barrier)
@@ -320,9 +341,26 @@ class Game:
         # Update waves (single or multi-lane)
         waves_to_update = self.current_waves if self.game_mode == "multi_lane" else ([self.current_wave] if self.current_wave else [])
         
+        # Update time warps
+        for time_warp in self.time_warps[:]:
+            if not time_warp.update():
+                self.time_warps.remove(time_warp)
+        
         for wave in waves_to_update:
             if wave:
+                # Apply time warp effects to enemies in wave
+                for time_warp in self.time_warps:
+                    for enemy in wave.get_active_enemies():
+                        if time_warp.affects_enemy(enemy):
+                            enemy.speed *= time_warp.slow_factor
+                
                 wave.update(self.grid)  # Pass grid so enemies can check for barriers
+                
+                # Reset enemy speeds after update
+                for time_warp in self.time_warps:
+                    for enemy in wave.get_active_enemies():
+                        if time_warp.affects_enemy(enemy):
+                            enemy.speed /= time_warp.slow_factor
                 
                 # Check for escaped enemies
                 escaped = wave.get_escaped_enemies()
@@ -507,6 +545,10 @@ class Game:
     
     def _draw_game(self):
         """Draw game elements"""
+        # Draw time warps (behind everything)
+        for time_warp in self.time_warps:
+            time_warp.draw(self.screen)
+        
         # Draw barriers
         for barrier in self.barriers:
             barrier.draw(self.screen)
@@ -558,6 +600,13 @@ class Game:
                                     GRID_SIZE - 10, GRID_SIZE - 10)
             ghost_color = GREEN if valid else RED
             pygame.draw.rect(self.screen, ghost_color, ghost_rect, 3)
+        
+        # Draw time warp ghost
+        if self.placing_time_warp:
+            mouse_pos = pygame.mouse.get_pos()
+            # Draw radius indicator
+            pygame.draw.circle(self.screen, (100, 100, 255), mouse_pos, TIME_WARP_RADIUS, 2)
+            pygame.draw.circle(self.screen, (50, 50, 200), mouse_pos, 10)
     
     def _draw_pause_overlay(self):
         """Draw pause overlay"""

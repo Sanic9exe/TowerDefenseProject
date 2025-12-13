@@ -120,7 +120,14 @@ class Wave:
         diff_mult = DIFFICULTY_MODIFIERS[self.difficulty]["enemy_health"]
         for enemy in self.enemies[:]:
             if enemy.alive and not enemy.reached_end:
-                enemy.update(barrier_grid)
+                # Check for time warp effect (passed from game)
+                if hasattr(self, 'time_warp_factor') and self.time_warp_factor < 1.0:
+                    original_speed = enemy.speed
+                    enemy.speed *= self.time_warp_factor
+                    enemy.update(barrier_grid)
+                    enemy.speed = original_speed
+                else:
+                    enemy.update(barrier_grid)
                 
                 # Handle summoner spawning
                 if hasattr(enemy, 'can_summon') and enemy.can_summon:

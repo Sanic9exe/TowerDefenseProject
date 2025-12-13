@@ -45,7 +45,7 @@ TOWER_COSTS = {
     "freeze": 250,
     "splash": 350,
     "sniper": 400,
-    "drone": 500,
+    "drone_swarm": 500,
     "railgun": 600,
     "flamethrower": 300,
     "poison": 350,
