@@ -63,10 +63,10 @@ class UI:
         self.speed_button = Button(SCREEN_WIDTH - 150, 120, 130, 40, "Speed: 1x", YELLOW)
         self.barrier_button = Button(SCREEN_WIDTH - 150, 170, 130, 40, "Barrier\n$50", BROWN)
         
-        # Tower action buttons (shown when tower selected)
-        self.upgrade_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 170, 130, 40, "Upgrade", GREEN)
-        self.sell_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 120, 130, 40, "Sell", RED)
-        self.target_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 70, 130, 40, "Target", BLUE)
+        # Tower action buttons (shown when tower selected) - repositioned lower
+        self.upgrade_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 140, 130, 35, "Upgrade", GREEN)
+        self.sell_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 100, 130, 35, "Sell", RED)
+        self.target_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 60, 130, 35, "Target", BLUE)
         
         self.selected_tower_type = None
         self.unlocked_towers = {"arrow", "cannon", "laser"}  # Start with basic towers
@@ -115,37 +115,39 @@ class UI:
     
     def draw_tower_info(self, screen, tower, money):
         """Draw selected tower information and action buttons"""
-        # Info panel background
-        panel_rect = pygame.Rect(SCREEN_WIDTH - 180, SCREEN_HEIGHT - 200, 160, 180)
+        # Info panel background - taller to fit stats above buttons
+        panel_rect = pygame.Rect(SCREEN_WIDTH - 180, SCREEN_HEIGHT - 260, 160, 240)
         pygame.draw.rect(screen, LIGHT_GRAY, panel_rect)
         pygame.draw.rect(screen, BLACK, panel_rect, 2)
         
-        # Tower stats
-        y_offset = SCREEN_HEIGHT - 190
+        # Tower stats - moved higher up
+        y_offset = SCREEN_HEIGHT - 250
         stats = [
             f"Level: {tower.level}",
             f"Damage: {tower.damage}",
             f"Range: {tower.range}",
-            f"Type: {tower.tower_type}"
+            f"Type: {tower.tower_type}",
+            f"Target: {tower.targeting_mode[:6]}"
         ]
         
         for stat in stats:
             text = self.font_small.render(stat, True, BLACK)
             screen.blit(text, (SCREEN_WIDTH - 170, y_offset))
-            y_offset += 25
+            y_offset += 22
         
+        # Buttons below stats (repositioned to avoid overlap)
         # Upgrade button
         if tower.level < 3:
-            self.upgrade_button.text = f"Upgrade ${tower.upgrade_cost}"
+            self.upgrade_button.text = f"Upgrade\n${tower.upgrade_cost}"
             self.upgrade_button.color = GREEN if money >= tower.upgrade_cost else GRAY
             self.upgrade_button.draw(screen)
         
         # Sell button
-        self.sell_button.text = f"Sell ${tower.get_sell_value()}"
+        self.sell_button.text = f"Sell\n${tower.get_sell_value()}"
         self.sell_button.draw(screen)
         
         # Target mode button
-        self.target_button.text = f"Target:\n{tower.targeting_mode[:4]}"
+        self.target_button.text = f"Target"
         self.target_button.draw(screen)
     
     def draw_tower_ghost(self, screen, tower_type, grid_x, grid_y, valid):

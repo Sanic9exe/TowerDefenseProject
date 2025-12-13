@@ -95,9 +95,11 @@ class Enemy:
         self.alive = True
         self.reached_end = False
         self.is_boss = enemy_type == "boss"
+        self.slow_effect = 1.0  # Multiplier for speed (1.0 = normal, 0.5 = half speed)
+        self.slow_timer = 0  # Duration of slow effect
         
-    def move(self):
-        """Move enemy toward next waypoint"""
+    def move(self, barrier_grid=None):
+        """Move enemy toward next waypoint, checking for barriers"""
         if self.waypoint_index >= len(self.waypoints):
             self.reached_end = True
             return
@@ -106,17 +108,44 @@ class Enemy:
         direction = target - self.position
         distance = direction.length()
         
-        if distance <= self.speed:
+        # Apply slow effect to speed
+        effective_speed = self.speed * self.slow_effect
+        
+        if distance <= effective_speed:
+            # Check if next waypoint cell has a barrier
+            next_x = int(target.x // GRID_SIZE)
+            next_y = int(target.y // GRID_SIZE)
+            
+            if barrier_grid and 0 <= next_x < len(barrier_grid) and 0 <= next_y < len(barrier_grid[0]):
+                barrier = barrier_grid[next_x][next_y]
+                if isinstance(barrier, type(self)) and hasattr(barrier, 'alive'):  # Check if it's a Barrier object
+                    # Barrier blocks movement, damage it instead
+                    barrier.take_damage(effective_speed * 2)  # Damage based on speed
+                    return  # Don't move
+            
             self.position = target
             self.waypoint_index += 1
             if self.waypoint_index >= len(self.waypoints):
                 self.reached_end = True
         elif distance > 0:
-            direction = direction.normalize()
-            self.position += direction * self.speed
+            # Check if moving to next position would hit a barrier
+            direction_norm = direction.normalize()
+            next_pos = self.position + direction_norm * effective_speed
+            next_grid_x = int(next_pos.x // GRID_SIZE)
+            next_grid_y = int(next_pos.y // GRID_SIZE)
+            
+            if barrier_grid and 0 <= next_grid_x < len(barrier_grid) and 0 <= next_grid_y < len(barrier_grid[0]):
+                barrier = barrier_grid[next_grid_x][next_grid_y]
+                # Check if it's a Barrier object (has alive attribute)
+                if barrier is not None and not isinstance(barrier, str) and hasattr(barrier, 'alive') and barrier.alive:
+                    # Hit a barrier, damage it instead of moving
+                    barrier.take_damage(effective_speed * 2)
+                    return  # Don't move
+            
+            self.position += direction_norm * effective_speed
     
-    def take_damage(self, damage):
-        """Reduce enemy health, accounting for shields"""
+    def take_damage(self, damage, slow_effect=None, slow_duration=0):
+        """Reduce enemy health, accounting for shields and apply slow effect"""
         if self.shield > 0:
             self.shield -= 1
             # Shield blocks damage but still counts as hit
@@ -125,6 +154,12 @@ class Enemy:
             self.health -= damage
             if self.health <= 0:
                 self.alive = False
+            
+            # Apply slow effect if provided (from freeze tower)
+            if slow_effect is not None and slow_duration > 0:
+                self.slow_effect = slow_effect
+                self.slow_timer = slow_duration
+            
             return True  # Indicates damage was dealt
     
     def draw(self, screen):
@@ -176,10 +211,16 @@ class Enemy:
                             (health_bar_x, health_bar_y, 
                              int(health_bar_width * health_percentage), health_bar_height))
     
-    def update(self):
+    def update(self, barrier_grid=None):
         """Update enemy state"""
         if self.alive and not self.reached_end:
-            self.move()
+            self.move(barrier_grid)
+            
+            # Update slow effect timer
+            if self.slow_timer > 0:
+                self.slow_timer -= 1
+                if self.slow_timer <= 0:
+                    self.slow_effect = 1.0  # Reset to normal speed
             
             # Boss shield regeneration
             if self.is_boss and self.shield < 5:

@@ -292,7 +292,7 @@ class Game:
         
         for wave in waves_to_update:
             if wave:
-                wave.update()
+                wave.update(self.grid)  # Pass grid so enemies can check for barriers
                 
                 # Check for escaped enemies
                 escaped = wave.get_escaped_enemies()
@@ -338,21 +338,12 @@ class Game:
             if not projectile.active:
                 self.projectiles.remove(projectile)
         
-        # Update barriers - check for enemies colliding with them
+        # Update barriers - remove dead ones
         for barrier in self.barriers[:]:
             if not barrier.alive:
                 # Remove dead barriers from grid
                 self.grid[barrier.grid_x][barrier.grid_y] = "path"
                 self.barriers.remove(barrier)
-                continue
-            
-            # Check if any enemy is on this barrier cell
-            for enemy in all_active_enemies:
-                enemy_grid_x = int(enemy.position.x // GRID_SIZE)
-                enemy_grid_y = int(enemy.position.y // GRID_SIZE)
-                if enemy_grid_x == barrier.grid_x and enemy_grid_y == barrier.grid_y:
-                    # Enemy damages barrier
-                    barrier.take_damage(1)  # Damage per frame when enemy is on it
     
     def draw(self):
         """Draw everything"""

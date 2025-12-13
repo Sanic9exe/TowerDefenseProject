@@ -79,7 +79,7 @@ class Wave:
         # Shuffle for variety
         random.shuffle(self.spawn_queue)
     
-    def update(self):
+    def update(self, barrier_grid=None):
         """Update wave state and spawn enemies"""
         if self.spawn_queue:
             self.spawn_timer += 1
@@ -98,7 +98,7 @@ class Wave:
         # Update all enemies
         for enemy in self.enemies[:]:
             if enemy.alive and not enemy.reached_end:
-                enemy.update()
+                enemy.update(barrier_grid)
     
     def draw(self, screen):
         """Draw all enemies in wave"""

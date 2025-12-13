@@ -28,7 +28,11 @@ class Projectile:
         
         # Hit the target if close enough or at same position
         if distance <= self.speed:
-            self.target.take_damage(self.damage)
+            # Apply slow effect if this is a freeze tower projectile
+            if self.tower_type == "freeze":
+                self.target.take_damage(self.damage, slow_effect=0.5, slow_duration=90)  # 1.5 seconds at 60 FPS
+            else:
+                self.target.take_damage(self.damage)
             self.active = False
         elif distance > 0:
             # Only normalize if distance is non-zero
