@@ -11,6 +11,12 @@ pip install -r requirements.txt
 ## Running the Game
 
 ```bash
+python game_src/main.py
+```
+
+Or from the game_src directory:
+```bash
+cd game_src
 python main.py
 ```
 
@@ -66,16 +72,17 @@ Defend the path from enemies! Survive 10 waves to win.
 
 ## Game Structure
 
-The game is organized into several modules:
+The game is organized into several modules in the `game_src/` folder:
 
-- `main.py`: Entry point for the game
-- `game.py`: Main game loop and state management
-- `config.py`: Game configuration constants
-- `enemy.py`: Enemy classes and behaviors
-- `tower.py`: Tower classes and behaviors
-- `projectile.py`: Projectile/bullet system
-- `wave.py`: Wave spawning system
-- `ui.py`: User interface elements
+- `game_src/main.py`: Entry point for the game
+- `game_src/game.py`: Main game loop and state management
+- `game_src/config.py`: Game configuration constants
+- `game_src/enemy.py`: Enemy classes and behaviors
+- `game_src/tower.py`: Tower classes and behaviors
+- `game_src/projectile.py`: Projectile/bullet system
+- `game_src/wave.py`: Wave spawning system
+- `game_src/ui.py`: User interface elements
+- `game_src/test_game.py`: Test suite
 
 ## Tips
 
