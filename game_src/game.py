@@ -30,6 +30,7 @@ class Game:
         self.money = STARTING_MONEY
         self.lives = STARTING_LIVES
         self.wave_number = 0
+        self.total_waves = 10  # QOL: selectable wave count (default 10)
         
         # Game objects
         self.towers = []
@@ -111,6 +112,17 @@ class Game:
             self.ui.unlocked_towers.add("splash")
         if self.wave_number >= 7 and "sniper" not in self.ui.unlocked_towers:
             self.ui.unlocked_towers.add("sniper")
+        # New advanced towers unlock later
+        if self.wave_number >= 10 and "flamethrower" not in self.ui.unlocked_towers:
+            self.ui.unlocked_towers.add("flamethrower")
+        if self.wave_number >= 12 and "poison" not in self.ui.unlocked_towers:
+            self.ui.unlocked_towers.add("poison")
+        if self.wave_number >= 15 and "drone_swarm" not in self.ui.unlocked_towers:
+            self.ui.unlocked_towers.add("drone_swarm")
+        if self.wave_number >= 18 and "railgun" not in self.ui.unlocked_towers:
+            self.ui.unlocked_towers.add("railgun")
+        if self.wave_number >= 20 and "economy" not in self.ui.unlocked_towers:
+            self.ui.unlocked_towers.add("economy")
     
     def handle_events(self):
         """Handle pygame events"""
@@ -142,10 +154,14 @@ class Game:
                         self.state = "menu"
             
             elif self.state == "menu":
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                    self._setup_game_mode()  # Setup paths based on mode
-                    self.state = "playing"
-                    self.start_next_wave()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        self._setup_game_mode()  # Setup paths based on mode
+                        self.state = "playing"
+                        self.start_next_wave()
+                    # QOL: Select wave count (number keys 1-9 for 10-90 waves in increments of 10)
+                    elif event.key >= pygame.K_1 and event.key <= pygame.K_9 and self.game_mode != "endless":
+                        self.total_waves = (event.key - pygame.K_0) * 10
             
             elif self.state == "playing":
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -202,6 +218,12 @@ class Game:
                 self.placing_barrier = True
                 self.ui.selected_tower_type = None
                 self.selected_tower = None
+            return
+        
+        # Check auto-start button
+        if self.ui.auto_start_button.is_clicked(pos):
+            self.ui.auto_start_waves = not self.ui.auto_start_waves
+            self.ui.auto_start_button.text = f"Auto: {'ON' if self.ui.auto_start_waves else 'OFF'}"
             return
         
         # Check tower action buttons if tower is selected
@@ -287,6 +309,14 @@ class Game:
     
     def _update_game_logic(self):
         """Core game update logic (can be called multiple times for speed)"""
+        # Update economy towers - generate passive income
+        for tower in self.towers:
+            if hasattr(tower, 'is_economy') and tower.is_economy:
+                tower.income_timer += 1
+                if tower.income_timer >= tower.income_interval:
+                    self.money += tower.income_amount
+                    tower.income_timer = 0
+        
         # Update waves (single or multi-lane)
         waves_to_update = self.current_waves if self.game_mode == "multi_lane" else ([self.current_wave] if self.current_wave else [])
         
@@ -297,7 +327,12 @@ class Game:
                 # Check for escaped enemies
                 escaped = wave.get_escaped_enemies()
                 for enemy in escaped:
-                    self.lives -= 1
+                    # Decoy fakes only take half a life
+                    if hasattr(enemy, 'is_decoy_fake') and enemy.is_decoy_fake:
+                        self.lives -= 0.5
+                    else:
+                        self.lives -= 1
+                    
                     if self.lives <= 0:
                         self.state = "game_over"
                 
@@ -311,14 +346,22 @@ class Game:
         # Check for victory/wave completion
         if self.game_mode == "multi_lane":
             all_completed = all(w.completed for w in self.current_waves)
-            if self.wave_number >= 10 and all_completed:
+            if self.wave_number >= self.total_waves and all_completed:
                 self.state = "victory"
         elif self.game_mode == "normal" and self.current_wave:
-            if self.wave_number >= 10 and self.current_wave.completed:
+            if self.wave_number >= self.total_waves and self.current_wave.completed:
                 self.state = "victory"
         elif self.game_mode == "endless" and self.current_wave and self.current_wave.completed:
             # Auto-start next wave in endless mode
             self.start_next_wave()
+        
+        # Auto-start waves if enabled (non-endless modes)
+        if self.ui.auto_start_waves and self.game_mode != "endless":
+            if self.game_mode == "multi_lane":
+                if all(w.completed for w in self.current_waves):
+                    self.start_next_wave()
+            elif self.current_wave and self.current_wave.completed:
+                self.start_next_wave()
         
         # Get all active enemies from all waves
         all_active_enemies = []
@@ -328,9 +371,22 @@ class Game:
         
         # Update towers and create projectiles
         for tower in self.towers:
-            projectile = tower.update(all_active_enemies)
-            if projectile:
-                self.projectiles.append(projectile)
+            # Handle drone spawning towers
+            if hasattr(tower, 'is_drone_tower') and tower.is_drone_tower:
+                tower.drone_spawn_timer += 1
+                if tower.drone_spawn_timer >= tower.drone_spawn_delay:
+                    # Create a drone projectile that acts independently
+                    if all_active_enemies:
+                        target = tower._find_target(all_active_enemies)
+                        if target:
+                            projectile = tower.create_projectile(target)
+                            if projectile:
+                                self.projectiles.append(projectile)
+                                tower.drone_spawn_timer = 0
+            else:
+                projectile = tower.update(all_active_enemies)
+                if projectile:
+                    self.projectiles.append(projectile)
         
         # Update projectiles
         for projectile in self.projectiles[:]:
@@ -431,15 +487,22 @@ class Game:
         mode_rect = mode_display.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 30))
         self.screen.blit(mode_display, mode_rect)
         
+        # QOL: Show wave count selection for non-endless modes
+        if self.game_mode != "endless":
+            wave_text = f"Total Waves: {self.total_waves} (Press 1-9 to change: 10-90 waves)"
+            wave_display = self.ui.font_small.render(wave_text, True, BLACK)
+            wave_rect = wave_display.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 10))
+            self.screen.blit(wave_display, wave_rect)
+        
         instructions = self.ui.font_medium.render("Press SPACE to Start", True, BLACK)
-        inst_rect = instructions.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
+        inst_rect = instructions.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
         self.screen.blit(instructions, inst_rect)
         
-        if self.game_mode == "normal":
-            info = self.ui.font_small.render("Defend the path! Survive 10 waves to win!", True, BLACK)
+        if self.game_mode == "normal" or self.game_mode == "multi_lane":
+            info = self.ui.font_small.render(f"Defend the path! Survive {self.total_waves} waves to win!", True, BLACK)
         else:
             info = self.ui.font_small.render("Survive as long as you can!", True, BLACK)
-        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 70))
+        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
         self.screen.blit(info, info_rect)
     
     def _draw_game(self):

@@ -70,11 +70,32 @@ class Wave:
         for _ in range(splitter_count):
             self.spawn_queue.append("splitter")
         
-        # Add air units in hard mode after wave 5
-        if self.difficulty == "hard" and self.wave_number >= 5:
-            air_count = max(1, (self.wave_number - 4) // 2)
+        # Add air units after wave 18 in all modes (not just hard mode)
+        if self.wave_number >= 18:
+            air_count = max(1, (self.wave_number - 17) // 2)
             for _ in range(air_count):
                 self.spawn_queue.append("air")
+        
+        # Add new advanced enemies after wave 18
+        if self.wave_number >= 18:
+            summoner_count = max(0, (self.wave_number - 18) // 3)
+            fortress_count = max(0, (self.wave_number - 20) // 4)
+            decoy_count = max(1, (self.wave_number - 18) // 2)
+            swarm_count = max(0, (self.wave_number - 19) // 2)
+            
+            for _ in range(summoner_count):
+                self.spawn_queue.append("summoner")
+            for _ in range(fortress_count):
+                self.spawn_queue.append("flying_fortress")
+            for _ in range(decoy_count):
+                self.spawn_queue.append("decoy")
+            # Swarms spawn in groups
+            if swarm_count > 0:
+                for _ in range(swarm_count):
+                    # Each swarm is 5-10 tiny enemies
+                    num_swarm = random.randint(5, 10)
+                    for _ in range(num_swarm):
+                        self.spawn_queue.append("swarm")
         
         # Shuffle for variety
         random.shuffle(self.spawn_queue)
@@ -95,10 +116,36 @@ class Wave:
         elif not self.enemies:
             self.completed = True
         
-        # Update all enemies
+        # Update all enemies and handle spawning
+        diff_mult = DIFFICULTY_MODIFIERS[self.difficulty]["enemy_health"]
         for enemy in self.enemies[:]:
             if enemy.alive and not enemy.reached_end:
                 enemy.update(barrier_grid)
+                
+                # Handle summoner spawning
+                if hasattr(enemy, 'can_summon') and enemy.can_summon:
+                    enemy.summon_timer += 1
+                    if enemy.summon_timer >= enemy.summon_delay:
+                        # Spawn a basic minion at summoner's position
+                        minion = Enemy(self.waypoints, "basic", diff_mult * 0.5)
+                        minion.position = enemy.position.copy()
+                        minion.waypoint_index = enemy.waypoint_index
+                        minion.reward = 5  # Lower reward for spawned minions
+                        self.enemies.append(minion)
+                        enemy.summon_timer = 0
+                
+                # Handle flying fortress spawning
+                if hasattr(enemy, 'spawns_units') and enemy.spawns_units:
+                    enemy.spawn_timer += 1
+                    if enemy.spawn_timer >= enemy.spawn_delay:
+                        # Spawn a tank ground unit below the fortress
+                        spawn_unit = Enemy(self.waypoints, "tank", diff_mult * 0.6)
+                        spawn_unit.position = enemy.position.copy()
+                        spawn_unit.waypoint_index = enemy.waypoint_index
+                        spawn_unit.reward = 10  # Lower reward for spawned units
+                        spawn_unit.is_air = False  # Ground unit
+                        self.enemies.append(spawn_unit)
+                        enemy.spawn_timer = 0
     
     def draw(self, screen):
         """Draw all enemies in wave"""

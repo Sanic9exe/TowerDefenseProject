@@ -47,14 +47,22 @@ class UI:
         self.font_medium = pygame.font.Font(None, 28)
         self.font_small = pygame.font.Font(None, 24)
         
-        # Tower selection buttons (2 rows)
+        # Tower selection buttons (3 rows with smaller buttons for 11 towers)
         self.tower_buttons = {
-            "arrow": Button(20, 20, 90, 55, f"Arrow\n${TOWER_COSTS['arrow']}", DARK_GREEN),
-            "cannon": Button(120, 20, 90, 55, f"Cannon\n${TOWER_COSTS['cannon']}", DARK_GRAY),
-            "laser": Button(220, 20, 90, 55, f"Laser\n${TOWER_COSTS['laser']}", BLUE),
-            "freeze": Button(20, 85, 90, 55, f"Freeze\n${TOWER_COSTS['freeze']}", (100, 200, 255)),
-            "splash": Button(120, 85, 90, 55, f"Splash\n${TOWER_COSTS['splash']}", (255, 100, 0)),
-            "sniper": Button(220, 85, 90, 55, f"Sniper\n${TOWER_COSTS['sniper']}", (50, 50, 50))
+            # Row 1 - Original 3
+            "arrow": Button(20, 20, 70, 45, f"Arrow\n${TOWER_COSTS['arrow']}", DARK_GREEN),
+            "cannon": Button(100, 20, 70, 45, f"Cannon\n${TOWER_COSTS['cannon']}", DARK_GRAY),
+            "laser": Button(180, 20, 70, 45, f"Laser\n${TOWER_COSTS['laser']}", BLUE),
+            "freeze": Button(260, 20, 70, 45, f"Freeze\n${TOWER_COSTS['freeze']}", (100, 200, 255)),
+            # Row 2 - Next 4
+            "splash": Button(20, 75, 70, 45, f"Splash\n${TOWER_COSTS['splash']}", (255, 100, 0)),
+            "sniper": Button(100, 75, 70, 45, f"Sniper\n${TOWER_COSTS['sniper']}", (50, 50, 50)),
+            "flamethrower": Button(180, 75, 70, 45, f"Flame\n${TOWER_COSTS['flamethrower']}", (255, 50, 0)),
+            "poison": Button(260, 75, 70, 45, f"Poison\n${TOWER_COSTS['poison']}", (100, 255, 0)),
+            # Row 3 - Advanced 3
+            "drone_swarm": Button(20, 130, 70, 45, f"Drone\n${TOWER_COSTS['drone_swarm']}", (150, 150, 255)),
+            "railgun": Button(100, 130, 70, 45, f"Rail\n${TOWER_COSTS['railgun']}", (200, 200, 255)),
+            "economy": Button(180, 130, 70, 45, f"Econ\n${TOWER_COSTS['economy']}", (255, 215, 0))
         }
         
         # Control buttons
@@ -62,6 +70,7 @@ class UI:
         self.pause_button = Button(SCREEN_WIDTH - 150, 70, 130, 40, "Pause", GRAY)
         self.speed_button = Button(SCREEN_WIDTH - 150, 120, 130, 40, "Speed: 1x", YELLOW)
         self.barrier_button = Button(SCREEN_WIDTH - 150, 170, 130, 40, "Barrier\n$50", BROWN)
+        self.auto_start_button = Button(SCREEN_WIDTH - 150, 220, 130, 40, "Auto: OFF", (200, 200, 0))
         
         # Tower action buttons (shown when tower selected) - repositioned lower
         self.upgrade_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 140, 130, 35, "Upgrade", GREEN)
@@ -70,6 +79,7 @@ class UI:
         
         self.selected_tower_type = None
         self.unlocked_towers = {"arrow", "cannon", "laser"}  # Start with basic towers
+        self.auto_start_waves = False  # QOL: auto-start toggle
         
     def draw_hud(self, screen, money, lives, wave_number, game_mode="normal", difficulty="normal"):
         """Draw HUD elements"""
