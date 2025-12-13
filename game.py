@@ -100,8 +100,7 @@ class Game:
         # Check tower selection buttons
         for tower_type, button in self.ui.tower_buttons.items():
             if button.is_clicked(pos):
-                tower_costs = {"arrow": 100, "cannon": 200, "laser": 300}
-                if self.money >= tower_costs[tower_type]:
+                if self.money >= TOWER_COSTS[tower_type]:
                     self.ui.selected_tower_type = tower_type
                     self.selected_tower = None
                 return
@@ -141,8 +140,7 @@ class Game:
             # Place tower
             if self.ui.selected_tower_type:
                 if self._can_place_tower(grid_x, grid_y):
-                    tower_costs = {"arrow": 100, "cannon": 200, "laser": 300}
-                    cost = tower_costs[self.ui.selected_tower_type]
+                    cost = TOWER_COSTS[self.ui.selected_tower_type]
                     if self.money >= cost:
                         tower = Tower(grid_x, grid_y, self.ui.selected_tower_type)
                         self.towers.append(tower)

@@ -40,9 +40,9 @@ class UI:
         
         # Tower selection buttons
         self.tower_buttons = {
-            "arrow": Button(20, 20, 100, 60, "Arrow\n$100", DARK_GREEN),
-            "cannon": Button(130, 20, 100, 60, "Cannon\n$200", DARK_GRAY),
-            "laser": Button(240, 20, 100, 60, "Laser\n$300", BLUE)
+            "arrow": Button(20, 20, 100, 60, f"Arrow\n${TOWER_COSTS['arrow']}", DARK_GREEN),
+            "cannon": Button(130, 20, 100, 60, f"Cannon\n${TOWER_COSTS['cannon']}", DARK_GRAY),
+            "laser": Button(240, 20, 100, 60, f"Laser\n${TOWER_COSTS['laser']}", BLUE)
         }
         
         # Control buttons

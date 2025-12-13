@@ -30,6 +30,13 @@ DARK_GREEN = (34, 139, 34)
 STARTING_MONEY = 500
 STARTING_LIVES = 20
 
+# Tower costs
+TOWER_COSTS = {
+    "arrow": 100,
+    "cannon": 200,
+    "laser": 300
+}
+
 # Path waypoints (x, y) coordinates
 PATH_WAYPOINTS = [
     (0, 400),
