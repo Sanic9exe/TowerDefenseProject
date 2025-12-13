@@ -184,10 +184,20 @@ class Tower:
             self.has_fired = True
             self.recoil_timer = 10  # Start recoil animation
             
-            # Pass splash radius if this is a splash tower
+            # Gather tower-specific properties
             splash_radius = self.splash_radius if hasattr(self, 'splash_radius') else 0
+            piercing = self.piercing if hasattr(self, 'piercing') else False
+            poison_dmg = self.poison_damage if hasattr(self, 'poison_damage') else 0
+            poison_dur = self.poison_duration if hasattr(self, 'poison_duration') else 0
+            burn_dmg = 0
+            burn_dur = 0
+            if hasattr(self, 'dot_duration'):
+                burn_dmg = self.damage  # Flamethrower burn damage
+                burn_dur = self.dot_duration
+            
             return Projectile(self.position.x, self.position.y, 
-                            target, self.damage, self.projectile_speed, self.tower_type, splash_radius)
+                            target, self.damage, self.projectile_speed, self.tower_type, 
+                            splash_radius, piercing, poison_dmg, poison_dur, burn_dmg, burn_dur)
         return None
     
     def update(self, enemies):
@@ -205,6 +215,14 @@ class Tower:
                 self.charge_timer = min(10, self.charge_timer + 1)
             else:
                 self.charge_timer = max(0, self.charge_timer - 1)
+        
+        # Economy tower generates income instead of shooting
+        if self.tower_type == "economy":
+            if self.cooldown <= 0:
+                self.cooldown = self.fire_rate
+                # Flag for game to add income (handled in game loop)
+                self.generate_income = True
+            return None  # No projectile
         
         # Find and shoot at target
         self.target = self.find_target(enemies)

@@ -7,7 +7,7 @@ from config import *
 
 class Projectile:
     """Projectile that moves toward target enemy"""
-    def __init__(self, x, y, target, damage, speed, tower_type="arrow", splash_radius=0):
+    def __init__(self, x, y, target, damage, speed, tower_type="arrow", splash_radius=0, piercing=False, poison_dmg=0, poison_dur=0, burn_dmg=0, burn_dur=0):
         self.position = pygame.math.Vector2(x, y)
         self.target = target
         self.damage = damage
@@ -16,7 +16,12 @@ class Projectile:
         self.radius = 5
         self.tower_type = tower_type
         self.splash_radius = splash_radius  # AOE damage radius
-        self.hit_enemies = []  # For splash damage
+        self.piercing = piercing  # For railgun
+        self.poison_dmg = poison_dmg
+        self.poison_dur = poison_dur
+        self.burn_dmg = burn_dmg
+        self.burn_dur = burn_dur
+        self.hit_enemies = []  # For splash damage and piercing
         self.all_enemies = []  # Reference to all enemies for splash damage
         
     def update(self, all_enemies=None):
@@ -27,6 +32,16 @@ class Projectile:
         
         direction = self.target.position - self.position
         distance = direction.length()
+        
+        # Railgun piercing - check for enemies along the path
+        if self.piercing and all_enemies and distance > 0:
+            for enemy in all_enemies:
+                if enemy.alive and enemy not in self.hit_enemies:
+                    # Check if enemy is close to projectile path
+                    enemy_dist = enemy.position.distance_to(self.position)
+                    if enemy_dist <= enemy.radius + 5:
+                        enemy.take_damage(self.damage)
+                        self.hit_enemies.append(enemy)
         
         # Hit the target if close enough or at same position
         if distance <= self.speed:
@@ -46,6 +61,16 @@ class Projectile:
                             enemies_hit += 1
                 # Store for visual effect (optional)
                 self.splash_position = impact_position
+            elif self.tower_type == "poison":
+                # Poison tower: DOT effect
+                self.target.take_damage(self.damage, poison_dmg=self.poison_dmg, poison_dur=self.poison_dur)
+            elif self.tower_type == "flamethrower":
+                # Flamethrower: burn DOT
+                self.target.take_damage(self.damage, burn_dmg=self.burn_dmg, burn_dur=self.burn_dur)
+            elif self.tower_type == "railgun":
+                # Railgun: final hit on target
+                if self.target not in self.hit_enemies:
+                    self.target.take_damage(self.damage)
             else:
                 # Single target damage
                 self.target.take_damage(self.damage)
@@ -73,6 +98,16 @@ class Projectile:
                                      int(self.splash_radius * 0.3), 1)
             elif self.tower_type == "cannon":
                 color = DARK_GRAY
+            elif self.tower_type == "drone":
+                color = (150, 150, 200)
+            elif self.tower_type == "railgun":
+                color = (0, 255, 255)
+                # Draw longer projectile for railgun
+                self.radius = 7
+            elif self.tower_type == "flamethrower":
+                color = (255, 69, 0)
+            elif self.tower_type == "poison":
+                color = (0, 200, 0)
             
             pygame.draw.circle(screen, color,
                              (int(self.position.x), int(self.position.y)),
