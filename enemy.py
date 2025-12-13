@@ -51,7 +51,7 @@ class Enemy:
             self.waypoint_index += 1
             if self.waypoint_index >= len(self.waypoints):
                 self.reached_end = True
-        else:
+        elif distance > 0:
             direction = direction.normalize()
             self.position += direction * self.speed
     

@@ -96,10 +96,11 @@ class Tower:
     def get_sell_value(self):
         """Get refund value for selling tower"""
         total_cost = self.cost
-        level_cost = self.cost
+        # Calculate total investment including upgrades
+        upgrade_cost = self.cost * 1.5  # First upgrade cost
         for i in range(1, self.level):
-            level_cost = int(level_cost * 1.5)
-            total_cost += level_cost
+            total_cost += int(upgrade_cost)
+            upgrade_cost = upgrade_cost * 1.5
         return int(total_cost * 0.75)
     
     def draw(self, screen):
