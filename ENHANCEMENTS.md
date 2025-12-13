@@ -186,11 +186,37 @@ Improved interface with more information:
 - **Air Waves**: Ensure you have anti-air coverage
 - **Endless**: Balance expansion with upgrades
 
-## Future Enhancement Ideas
-- Tower animations (barrels rotate, recoil effects)
-- Random map generation for endless mode
-- Multiple path lanes
-- Buildable barriers for path extension
+## Completed Advanced Features
+
+### 🎬 Tower Animations
+- **Barrel Rotation**: Towers visually rotate to face their targets
+- **Recoil Effect**: Barrels recoil when firing projectiles
+- **Charge Animation**: Laser and Sniper towers show charging effects before firing
+- Visual feedback makes towers feel alive and responsive
+
+### 🗺️ Random Map Generation (Endless Mode)
+- Procedurally generated winding paths for endless mode
+- Each endless game has a unique path layout
+- Paths maintain proper flow from left to right with varied height
+- Adds replayability and strategic variety
+
+### 🛣️ Multi-Lane Mode
+- Defend TWO separate paths simultaneously (Press M at mode select)
+- Enemies spawn on both lanes
+- Requires strategic tower placement to cover both paths
+- Increased difficulty and strategic depth
+- Victory after completing 10 waves on both lanes
+
+### 🚧 Buildable Barriers (Hard Mode Only)
+- Place barriers on the path to block enemies ($50 each)
+- Maximum of 10 barriers per game
+- Enemies damage barriers (1 HP per frame of contact)
+- Barriers have 200 HP and health bars
+- Strategic path extension forces enemies to take longer routes
+- Barriers turn from brown to red as they take damage
+
+## Future Enhancement Ideas (Optional)
 - Achievement system
 - High score tracking
 - Sound effects and music
+- Save/load game progress

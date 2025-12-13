@@ -26,15 +26,18 @@ python main.py
 When you start, you'll select a difficulty and game mode:
 - **Easy (Press 1)**: Enemies have 70% health, you start with $700
 - **Normal (Press 2)**: Standard experience, start with $500
-- **Hard (Press 3)**: Enemies have 150% health, earn 2x money, includes air units
-- **Endless (Press E)**: Infinite waves, survive as long as possible!
+- **Hard (Press 3)**: Enemies have 150% health, earn 2x money, includes air units, unlock barriers
+- **Endless (Press E)**: Infinite waves with random map generation, survive as long as possible!
+- **Multi-Lane (Press M)**: Defend TWO paths simultaneously, ultimate challenge!
 
 ### Controls
 - **SPACE**: Start game / Pause/Unpause
 - **ESC**: Deselect tower type or selected tower
 - **R**: Restart game (on game over/victory screen)
 - **Mouse**: Click to select, place, and interact with towers
-- **1/2/3/E**: Select difficulty/mode at start screen
+- **1/2/3**: Select difficulty at start screen
+- **E**: Select Endless mode (random map)
+- **M**: Select Multi-Lane mode (2 paths)
 
 ### Game Mechanics
 
@@ -94,7 +97,15 @@ When you start, you'll select a difficulty and game mode:
    - Waves get progressively harder with more and tougher enemies
    - Boss waves every 5 waves!
    - **Normal Mode**: Survive 10 waves to win
-   - **Endless Mode**: Waves continue forever, see how long you last!
+   - **Endless Mode**: Waves continue forever with random map, see how long you last!
+   - **Multi-Lane Mode**: Defend 2 paths simultaneously for 10 waves
+
+9. **Barriers** (Hard Mode Only)
+   - Click "Barrier" button ($50 each)
+   - Place on the path to block enemies
+   - Maximum of 10 barriers
+   - Enemies damage barriers (200 HP each)
+   - Use to extend enemy path or create choke points
 
 ## Game Structure
 
@@ -132,8 +143,15 @@ The game is organized into several modules in the `game_src/` folder:
 - **Air units**: Require Laser or Sniper towers (can't be hit by others)
 - **Boss enemies**: Shields regenerate! Focus fire to break shields quickly
 
-### Difficulty-Specific
+### Mode-Specific Tips
 - **Easy**: Great for learning, experiment with tower combinations
 - **Normal**: Balanced, requires good tower placement and upgrades
-- **Hard**: Air units appear! Build Laser/Sniper towers, use 2x money wisely
-- **Endless**: Prioritize upgrades and long-term defense, don't over-expand
+- **Hard**: Air units + barriers! Build Laser/Sniper towers, use barriers strategically, 2x money
+- **Endless**: Random maps each time! Prioritize upgrades and adaptability
+- **Multi-Lane**: Split your defense! Place towers between paths to cover both lanes
+
+### Animation Features
+- **Tower Rotation**: Watch barrels turn to track enemies
+- **Recoil Effect**: Towers visually recoil when firing
+- **Charge Effect**: Laser and Sniper show charging animations
+- Visual feedback helps you understand tower behavior
