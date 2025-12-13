@@ -30,12 +30,28 @@ DARK_GREEN = (34, 139, 34)
 STARTING_MONEY = 500
 STARTING_LIVES = 20
 
+# Difficulty settings
+DIFFICULTY_MODIFIERS = {
+    "easy": {"enemy_health": 0.7, "enemy_speed": 0.8, "money_mult": 1.2, "starting_money": 700},
+    "normal": {"enemy_health": 1.0, "enemy_speed": 1.0, "money_mult": 1.0, "starting_money": 500},
+    "hard": {"enemy_health": 1.5, "enemy_speed": 1.2, "money_mult": 2.0, "starting_money": 400}
+}
+
 # Tower costs
 TOWER_COSTS = {
     "arrow": 100,
     "cannon": 200,
-    "laser": 300
+    "laser": 300,
+    "freeze": 250,
+    "splash": 350,
+    "sniper": 400
 }
+
+# Tower targeting modes
+TARGETING_MODES = ["closest", "strongest", "weakest", "first", "last", "nearest_exit"]
+
+# Game speed multipliers
+SPEED_OPTIONS = [1, 2, 3]
 
 # Path waypoints (x, y) coordinates
 PATH_WAYPOINTS = [

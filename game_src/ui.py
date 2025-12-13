@@ -47,24 +47,30 @@ class UI:
         self.font_medium = pygame.font.Font(None, 28)
         self.font_small = pygame.font.Font(None, 24)
         
-        # Tower selection buttons
+        # Tower selection buttons (2 rows)
         self.tower_buttons = {
-            "arrow": Button(20, 20, 100, 60, f"Arrow\n${TOWER_COSTS['arrow']}", DARK_GREEN),
-            "cannon": Button(130, 20, 100, 60, f"Cannon\n${TOWER_COSTS['cannon']}", DARK_GRAY),
-            "laser": Button(240, 20, 100, 60, f"Laser\n${TOWER_COSTS['laser']}", BLUE)
+            "arrow": Button(20, 20, 90, 55, f"Arrow\n${TOWER_COSTS['arrow']}", DARK_GREEN),
+            "cannon": Button(120, 20, 90, 55, f"Cannon\n${TOWER_COSTS['cannon']}", DARK_GRAY),
+            "laser": Button(220, 20, 90, 55, f"Laser\n${TOWER_COSTS['laser']}", BLUE),
+            "freeze": Button(20, 85, 90, 55, f"Freeze\n${TOWER_COSTS['freeze']}", (100, 200, 255)),
+            "splash": Button(120, 85, 90, 55, f"Splash\n${TOWER_COSTS['splash']}", (255, 100, 0)),
+            "sniper": Button(220, 85, 90, 55, f"Sniper\n${TOWER_COSTS['sniper']}", (50, 50, 50))
         }
         
         # Control buttons
         self.next_wave_button = Button(SCREEN_WIDTH - 150, 20, 130, 40, "Next Wave", GREEN)
         self.pause_button = Button(SCREEN_WIDTH - 150, 70, 130, 40, "Pause", GRAY)
+        self.speed_button = Button(SCREEN_WIDTH - 150, 120, 130, 40, "Speed: 1x", YELLOW)
         
         # Tower action buttons (shown when tower selected)
-        self.upgrade_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 120, 130, 40, "Upgrade", GREEN)
-        self.sell_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 70, 130, 40, "Sell", RED)
+        self.upgrade_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 170, 130, 40, "Upgrade", GREEN)
+        self.sell_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 120, 130, 40, "Sell", RED)
+        self.target_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 70, 130, 40, "Target", BLUE)
         
         self.selected_tower_type = None
+        self.unlocked_towers = {"arrow", "cannon", "laser"}  # Start with basic towers
         
-    def draw_hud(self, screen, money, lives, wave_number):
+    def draw_hud(self, screen, money, lives, wave_number, game_mode="normal", difficulty="normal"):
         """Draw HUD elements"""
         # Money display
         money_text = self.font_medium.render(f"Money: ${money}", True, YELLOW)
@@ -77,18 +83,32 @@ class UI:
         # Wave display
         wave_text = self.font_medium.render(f"Wave: {wave_number}", True, WHITE)
         screen.blit(wave_text, (380, SCREEN_HEIGHT - 40))
+        
+        # Difficulty and mode display
+        mode_color = GREEN if game_mode == "endless" else WHITE
+        mode_text = self.font_small.render(f"{game_mode.title()} | {difficulty.title()}", True, mode_color)
+        screen.blit(mode_text, (550, SCREEN_HEIGHT - 35))
     
     def draw_tower_buttons(self, screen, money):
-        """Draw tower selection buttons"""
+        """Draw tower selection buttons (only unlocked ones)"""
         for tower_type, button in self.tower_buttons.items():
-            button.draw(screen)
-            if self.selected_tower_type == tower_type:
-                pygame.draw.rect(screen, YELLOW, button.rect, 4)
+            if tower_type in self.unlocked_towers:
+                button.draw(screen)
+                if self.selected_tower_type == tower_type:
+                    pygame.draw.rect(screen, YELLOW, button.rect, 4)
+            else:
+                # Draw locked tower button
+                pygame.draw.rect(screen, DARK_GRAY, button.rect)
+                pygame.draw.rect(screen, BLACK, button.rect, 2)
+                lock_font = pygame.font.Font(None, 24)
+                lock_text = lock_font.render("🔒", True, BLACK)
+                screen.blit(lock_text, (button.rect.centerx - 10, button.rect.centery - 10))
     
     def draw_control_buttons(self, screen):
         """Draw control buttons"""
         self.next_wave_button.draw(screen)
         self.pause_button.draw(screen)
+        self.speed_button.draw(screen)
     
     def draw_tower_info(self, screen, tower, money):
         """Draw selected tower information and action buttons"""
@@ -120,16 +140,28 @@ class UI:
         # Sell button
         self.sell_button.text = f"Sell ${tower.get_sell_value()}"
         self.sell_button.draw(screen)
+        
+        # Target mode button
+        self.target_button.text = f"Target:\n{tower.targeting_mode[:4]}"
+        self.target_button.draw(screen)
     
     def draw_tower_ghost(self, screen, tower_type, grid_x, grid_y, valid):
         """Draw ghost tower at mouse position"""
-        if tower_type in ["arrow", "cannon", "laser"]:
+        tower_colors = {
+            "arrow": DARK_GREEN, 
+            "cannon": DARK_GRAY, 
+            "laser": BLUE,
+            "freeze": (100, 200, 255),
+            "splash": (255, 100, 0),
+            "sniper": (50, 50, 50)
+        }
+        
+        if tower_type in tower_colors:
             color = GREEN if valid else RED
             alpha = 128
             ghost_surface = pygame.Surface((GRID_SIZE - 20, GRID_SIZE - 20))
             ghost_surface.set_alpha(alpha)
             
-            tower_colors = {"arrow": DARK_GREEN, "cannon": DARK_GRAY, "laser": BLUE}
             ghost_surface.fill(tower_colors[tower_type])
             
             screen.blit(ghost_surface, (grid_x * GRID_SIZE + 10, grid_y * GRID_SIZE + 10))
@@ -143,5 +175,7 @@ class UI:
             button.update_hover(mouse_pos)
         self.next_wave_button.update_hover(mouse_pos)
         self.pause_button.update_hover(mouse_pos)
+        self.speed_button.update_hover(mouse_pos)
         self.upgrade_button.update_hover(mouse_pos)
         self.sell_button.update_hover(mouse_pos)
+        self.target_button.update_hover(mouse_pos)

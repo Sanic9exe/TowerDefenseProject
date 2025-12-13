@@ -14,11 +14,16 @@ class Game:
     """Main game class"""
     def __init__(self):
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Tower Defense")
+        pygame.display.set_caption("Tower Defense - Enhanced Edition")
         self.clock = pygame.time.Clock()
         
+        # Game settings
+        self.difficulty = "normal"  # easy, normal, hard
+        self.game_mode = "normal"  # normal, endless
+        self.game_speed = 1  # 1x, 2x, 3x
+        
         # Game state
-        self.state = "menu"  # menu, playing, paused, game_over, victory
+        self.state = "mode_select"  # mode_select, menu, playing, paused, game_over, victory
         self.money = STARTING_MONEY
         self.lives = STARTING_LIVES
         self.wave_number = 0
@@ -57,7 +62,16 @@ class Game:
         """Start the next wave"""
         if self.current_wave is None or self.current_wave.completed:
             self.wave_number += 1
-            self.current_wave = Wave(self.wave_number, PATH_WAYPOINTS)
+            is_endless = (self.game_mode == "endless")
+            self.current_wave = Wave(self.wave_number, PATH_WAYPOINTS, self.difficulty, is_endless)
+            
+            # Unlock new towers at certain waves
+            if self.wave_number >= 3 and "freeze" not in self.ui.unlocked_towers:
+                self.ui.unlocked_towers.add("freeze")
+            if self.wave_number >= 5 and "splash" not in self.ui.unlocked_towers:
+                self.ui.unlocked_towers.add("splash")
+            if self.wave_number >= 7 and "sniper" not in self.ui.unlocked_towers:
+                self.ui.unlocked_towers.add("sniper")
     
     def handle_events(self):
         """Handle pygame events"""
@@ -68,7 +82,24 @@ class Game:
             if event.type == pygame.QUIT:
                 return False
             
-            if self.state == "menu":
+            if self.state == "mode_select":
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_1:  # Easy mode
+                        self.difficulty = "easy"
+                        self.money = DIFFICULTY_MODIFIERS["easy"]["starting_money"]
+                        self.state = "menu"
+                    elif event.key == pygame.K_2:  # Normal mode
+                        self.difficulty = "normal"
+                        self.state = "menu"
+                    elif event.key == pygame.K_3:  # Hard mode
+                        self.difficulty = "hard"
+                        self.money = DIFFICULTY_MODIFIERS["hard"]["starting_money"]
+                        self.state = "menu"
+                    elif event.key == pygame.K_e:  # Endless mode
+                        self.game_mode = "endless"
+                        self.state = "menu"
+            
+            elif self.state == "menu":
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                     self.state = "playing"
                     self.start_next_wave()
@@ -91,15 +122,14 @@ class Game:
             elif self.state == "game_over" or self.state == "victory":
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                     self.__init__()
-                    self.state = "menu"
         
         return True
     
     def _handle_click(self, pos):
         """Handle mouse clicks"""
-        # Check tower selection buttons
+        # Check tower selection buttons (only unlocked towers)
         for tower_type, button in self.ui.tower_buttons.items():
-            if button.is_clicked(pos):
+            if button.is_clicked(pos) and tower_type in self.ui.unlocked_towers:
                 if self.money >= TOWER_COSTS[tower_type]:
                     self.ui.selected_tower_type = tower_type
                     self.selected_tower = None
@@ -116,6 +146,13 @@ class Game:
             self.state = "paused"
             return
         
+        # Check speed button
+        if self.ui.speed_button.is_clicked(pos):
+            current_index = SPEED_OPTIONS.index(self.game_speed)
+            self.game_speed = SPEED_OPTIONS[(current_index + 1) % len(SPEED_OPTIONS)]
+            self.ui.speed_button.text = f"Speed: {self.game_speed}x"
+            return
+        
         # Check tower action buttons if tower is selected
         if self.selected_tower:
             if self.ui.upgrade_button.is_clicked(pos):
@@ -130,6 +167,10 @@ class Game:
                 self.towers.remove(self.selected_tower)
                 self.grid[self.selected_tower.grid_x][self.selected_tower.grid_y] = None
                 self.selected_tower = None
+                return
+            
+            if self.ui.target_button.is_clicked(pos):
+                self.selected_tower.cycle_targeting_mode()
                 return
         
         # Check grid for tower placement or selection
@@ -174,6 +215,12 @@ class Game:
         if self.state != "playing":
             return
         
+        # Apply game speed multiplier
+        for _ in range(self.game_speed):
+            self._update_game_logic()
+    
+    def _update_game_logic(self):
+        """Core game update logic (can be called multiple times for speed)"""
         # Update current wave
         if self.current_wave:
             self.current_wave.update()
@@ -188,11 +235,16 @@ class Game:
             # Check for killed enemies
             dead = self.current_wave.get_dead_enemies()
             for enemy in dead:
-                self.money += enemy.reward
+                # Apply money multiplier
+                money_mult = DIFFICULTY_MODIFIERS[self.difficulty]["money_mult"]
+                self.money += int(enemy.reward * money_mult)
             
-            # Check for victory (wave 10 completed)
-            if self.wave_number >= 10 and self.current_wave.completed:
+            # Check for victory (wave 10 completed in normal mode, endless continues)
+            if self.game_mode == "normal" and self.wave_number >= 10 and self.current_wave.completed:
                 self.state = "victory"
+            elif self.game_mode == "endless" and self.current_wave.completed:
+                # Auto-start next wave in endless mode
+                self.start_next_wave()
         
         # Update towers and create projectiles
         if self.current_wave:
@@ -221,7 +273,9 @@ class Game:
         # Draw path
         self._draw_path()
         
-        if self.state == "menu":
+        if self.state == "mode_select":
+            self._draw_mode_select()
+        elif self.state == "menu":
             self._draw_menu()
         elif self.state == "playing":
             self._draw_game()
@@ -244,18 +298,58 @@ class Game:
             end = PATH_WAYPOINTS[i + 1]
             pygame.draw.line(self.screen, BROWN, start, end, 40)
     
+    def _draw_mode_select(self):
+        """Draw mode/difficulty selection screen"""
+        title = self.ui.font_large.render("TOWER DEFENSE - ENHANCED", True, BLACK)
+        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 100))
+        self.screen.blit(title, title_rect)
+        
+        # Difficulty selection
+        diff_title = self.ui.font_medium.render("Select Difficulty:", True, BLACK)
+        self.screen.blit(diff_title, (SCREEN_WIDTH // 2 - 150, 200))
+        
+        difficulties = [
+            ("1 - Easy", "More money, weaker enemies", GREEN),
+            ("2 - Normal", "Standard experience", YELLOW),
+            ("3 - Hard", "Double money, tough enemies, air units", RED)
+        ]
+        
+        y_pos = 250
+        for key, desc, color in difficulties:
+            text = self.ui.font_medium.render(key, True, color)
+            desc_text = self.ui.font_small.render(desc, True, BLACK)
+            self.screen.blit(text, (SCREEN_WIDTH // 2 - 150, y_pos))
+            self.screen.blit(desc_text, (SCREEN_WIDTH // 2 - 100, y_pos + 30))
+            y_pos += 80
+        
+        # Game mode selection
+        mode_title = self.ui.font_medium.render("Or Press E for Endless Mode", True, BLUE)
+        self.screen.blit(mode_title, (SCREEN_WIDTH // 2 - 180, 550))
+        
+        endless_desc = self.ui.font_small.render("Infinite waves with random enemies", True, BLACK)
+        self.screen.blit(endless_desc, (SCREEN_WIDTH // 2 - 140, 580))
+    
     def _draw_menu(self):
         """Draw menu screen"""
         title = self.ui.font_large.render("TOWER DEFENSE", True, BLACK)
         title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3))
         self.screen.blit(title, title_rect)
         
+        # Show selected mode and difficulty
+        mode_text = f"Mode: {self.game_mode.title()} | Difficulty: {self.difficulty.title()}"
+        mode_display = self.ui.font_medium.render(mode_text, True, BLUE)
+        mode_rect = mode_display.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 30))
+        self.screen.blit(mode_display, mode_rect)
+        
         instructions = self.ui.font_medium.render("Press SPACE to Start", True, BLACK)
-        inst_rect = instructions.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        inst_rect = instructions.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
         self.screen.blit(instructions, inst_rect)
         
-        info = self.ui.font_small.render("Defend the path! Survive 10 waves to win!", True, BLACK)
-        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
+        if self.game_mode == "normal":
+            info = self.ui.font_small.render("Defend the path! Survive 10 waves to win!", True, BLACK)
+        else:
+            info = self.ui.font_small.render("Survive as long as you can!", True, BLACK)
+        info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 70))
         self.screen.blit(info, info_rect)
     
     def _draw_game(self):
@@ -273,7 +367,8 @@ class Game:
             projectile.draw(self.screen)
         
         # Draw UI
-        self.ui.draw_hud(self.screen, self.money, self.lives, self.wave_number)
+        self.ui.draw_hud(self.screen, self.money, self.lives, self.wave_number, 
+                        self.game_mode, self.difficulty)
         self.ui.draw_tower_buttons(self.screen, self.money)
         self.ui.draw_control_buttons(self.screen)
         
