@@ -53,6 +53,13 @@ TARGETING_MODES = ["closest", "strongest", "weakest", "first", "last", "nearest_
 # Game speed multipliers
 SPEED_OPTIONS = [1, 2, 3]
 
+# Barrier settings
+BARRIER_COST = 50
+MAX_BARRIERS = 10  # Maximum number of barriers in hard mode
+
+# Game modes
+GAME_MODES = ["normal", "endless", "multi_lane"]
+
 # Path waypoints (x, y) coordinates
 PATH_WAYPOINTS = [
     (0, 400),
@@ -63,4 +70,23 @@ PATH_WAYPOINTS = [
     (900, 600),
     (900, 300),
     (1200, 300)
+]
+
+# Alternative paths for multi-lane mode
+PATH_WAYPOINTS_TOP = [
+    (0, 200),
+    (400, 200),
+    (400, 100),
+    (800, 100),
+    (800, 300),
+    (1200, 300)
+]
+
+PATH_WAYPOINTS_BOTTOM = [
+    (0, 600),
+    (400, 600),
+    (400, 700),
+    (800, 700),
+    (800, 500),
+    (1200, 500)
 ]

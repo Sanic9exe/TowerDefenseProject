@@ -9,6 +9,8 @@ from tower import Tower
 from projectile import Projectile
 from wave import Wave
 from ui import UI
+from barrier import Barrier
+from map_generator import generate_random_path, generate_multi_lane_paths
 
 class Game:
     """Main game class"""
@@ -19,8 +21,9 @@ class Game:
         
         # Game settings
         self.difficulty = "normal"  # easy, normal, hard
-        self.game_mode = "normal"  # normal, endless
+        self.game_mode = "normal"  # normal, endless, multi_lane
         self.game_speed = 1  # 1x, 2x, 3x
+        self.current_paths = [PATH_WAYPOINTS]  # List of paths (for multi-lane)
         
         # Game state
         self.state = "mode_select"  # mode_select, menu, playing, paused, game_over, victory
@@ -31,47 +34,83 @@ class Game:
         # Game objects
         self.towers = []
         self.projectiles = []
+        self.barriers = []  # Buildable barriers (hard mode)
         self.current_wave = None
+        self.current_waves = []  # Multiple waves for multi-lane
         self.ui = UI()
         self.selected_tower = None
+        self.placing_barrier = False  # For barrier placement mode
         
         # Grid for tower placement
         self.grid = [[None for _ in range(GRID_HEIGHT)] for _ in range(GRID_WIDTH)]
         self._mark_path_cells()
         
     def _mark_path_cells(self):
-        """Mark grid cells that are part of the path"""
-        for i in range(len(PATH_WAYPOINTS) - 1):
-            start = PATH_WAYPOINTS[i]
-            end = PATH_WAYPOINTS[i + 1]
-            
-            # Mark cells between waypoints
-            x1, y1 = int(start[0] // GRID_SIZE), int(start[1] // GRID_SIZE)
-            x2, y2 = int(end[0] // GRID_SIZE), int(end[1] // GRID_SIZE)
-            
-            if x1 == x2:  # Vertical path
-                for y in range(min(y1, y2), max(y1, y2) + 1):
-                    if 0 <= x1 < GRID_WIDTH and 0 <= y < GRID_HEIGHT:
-                        self.grid[x1][y] = "path"
-            else:  # Horizontal path
-                for x in range(min(x1, x2), max(x1, x2) + 1):
-                    if 0 <= x < GRID_WIDTH and 0 <= y1 < GRID_HEIGHT:
-                        self.grid[x][y1] = "path"
+        """Mark grid cells that are part of the path(s)"""
+        # Mark all paths in current_paths
+        for path_waypoints in self.current_paths:
+            for i in range(len(path_waypoints) - 1):
+                start = path_waypoints[i]
+                end = path_waypoints[i + 1]
+                
+                # Mark cells between waypoints
+                x1, y1 = int(start[0] // GRID_SIZE), int(start[1] // GRID_SIZE)
+                x2, y2 = int(end[0] // GRID_SIZE), int(end[1] // GRID_SIZE)
+                
+                if x1 == x2:  # Vertical path
+                    for y in range(min(y1, y2), max(y1, y2) + 1):
+                        if 0 <= x1 < GRID_WIDTH and 0 <= y < GRID_HEIGHT:
+                            self.grid[x1][y] = "path"
+                else:  # Horizontal path
+                    for x in range(min(x1, x2), max(x1, x2) + 1):
+                        if 0 <= x < GRID_WIDTH and 0 <= y1 < GRID_HEIGHT:
+                            self.grid[x][y1] = "path"
+    
+    def _setup_game_mode(self):
+        """Set up paths based on game mode"""
+        if self.game_mode == "endless":
+            # Generate random path for endless mode
+            self.current_paths = [generate_random_path()]
+        elif self.game_mode == "multi_lane":
+            # Generate two paths for multi-lane mode
+            path1, path2 = generate_multi_lane_paths()
+            self.current_paths = [path1, path2]
+        else:
+            # Use default path for normal mode
+            self.current_paths = [PATH_WAYPOINTS]
+        
+        # Re-mark path cells
+        self.grid = [[None for _ in range(GRID_HEIGHT)] for _ in range(GRID_WIDTH)]
+        self._mark_path_cells()
     
     def start_next_wave(self):
         """Start the next wave"""
-        if self.current_wave is None or self.current_wave.completed:
-            self.wave_number += 1
-            is_endless = (self.game_mode == "endless")
-            self.current_wave = Wave(self.wave_number, PATH_WAYPOINTS, self.difficulty, is_endless)
-            
-            # Unlock new towers at certain waves
-            if self.wave_number >= 3 and "freeze" not in self.ui.unlocked_towers:
-                self.ui.unlocked_towers.add("freeze")
-            if self.wave_number >= 5 and "splash" not in self.ui.unlocked_towers:
-                self.ui.unlocked_towers.add("splash")
-            if self.wave_number >= 7 and "sniper" not in self.ui.unlocked_towers:
-                self.ui.unlocked_towers.add("sniper")
+        if self.game_mode == "multi_lane":
+            # Multi-lane: check if all waves completed
+            all_completed = all(w.completed for w in self.current_waves) if self.current_waves else True
+            if all_completed:
+                self.wave_number += 1
+                self.current_waves = []
+                # Create a wave for each path
+                for path in self.current_paths:
+                    wave = Wave(self.wave_number, path, self.difficulty, False)
+                    self.current_waves.append(wave)
+        else:
+            # Single path mode
+            if self.current_wave is None or self.current_wave.completed:
+                self.wave_number += 1
+                is_endless = (self.game_mode == "endless")
+                # Use the appropriate path
+                path = self.current_paths[0]
+                self.current_wave = Wave(self.wave_number, path, self.difficulty, is_endless)
+        
+        # Unlock new towers at certain waves
+        if self.wave_number >= 3 and "freeze" not in self.ui.unlocked_towers:
+            self.ui.unlocked_towers.add("freeze")
+        if self.wave_number >= 5 and "splash" not in self.ui.unlocked_towers:
+            self.ui.unlocked_towers.add("splash")
+        if self.wave_number >= 7 and "sniper" not in self.ui.unlocked_towers:
+            self.ui.unlocked_towers.add("sniper")
     
     def handle_events(self):
         """Handle pygame events"""
@@ -98,9 +137,13 @@ class Game:
                     elif event.key == pygame.K_e:  # Endless mode
                         self.game_mode = "endless"
                         self.state = "menu"
+                    elif event.key == pygame.K_m:  # Multi-lane mode
+                        self.game_mode = "multi_lane"
+                        self.state = "menu"
             
             elif self.state == "menu":
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    self._setup_game_mode()  # Setup paths based on mode
                     self.state = "playing"
                     self.start_next_wave()
             
@@ -153,6 +196,14 @@ class Game:
             self.ui.speed_button.text = f"Speed: {self.game_speed}x"
             return
         
+        # Check barrier button (hard mode only)
+        if self.difficulty == "hard" and self.ui.barrier_button.is_clicked(pos):
+            if self.money >= BARRIER_COST and len(self.barriers) < MAX_BARRIERS:
+                self.placing_barrier = True
+                self.ui.selected_tower_type = None
+                self.selected_tower = None
+            return
+        
         # Check tower action buttons if tower is selected
         if self.selected_tower:
             if self.ui.upgrade_button.is_clicked(pos):
@@ -173,13 +224,21 @@ class Game:
                 self.selected_tower.cycle_targeting_mode()
                 return
         
-        # Check grid for tower placement or selection
+        # Check grid for tower/barrier placement or selection
         grid_x = pos[0] // GRID_SIZE
         grid_y = pos[1] // GRID_SIZE
         
         if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
+            # Place barrier
+            if self.placing_barrier:
+                if self._can_place_barrier(grid_x, grid_y):
+                    barrier = Barrier(grid_x, grid_y)
+                    self.barriers.append(barrier)
+                    self.grid[grid_x][grid_y] = barrier
+                    self.money -= BARRIER_COST
+                    self.placing_barrier = False
             # Place tower
-            if self.ui.selected_tower_type:
+            elif self.ui.selected_tower_type:
                 if self._can_place_tower(grid_x, grid_y):
                     cost = TOWER_COSTS[self.ui.selected_tower_type]
                     if self.money >= cost:
@@ -210,6 +269,13 @@ class Game:
             return False
         return self.grid[grid_x][grid_y] is None
     
+    def _can_place_barrier(self, grid_x, grid_y):
+        """Check if barrier can be placed at position (only on path)"""
+        if grid_x < 0 or grid_x >= GRID_WIDTH or grid_y < 0 or grid_y >= GRID_HEIGHT:
+            return False
+        # Barriers can only be placed on empty path cells
+        return self.grid[grid_x][grid_y] == "path"
+    
     def update(self):
         """Update game state"""
         if self.state != "playing":
@@ -221,44 +287,72 @@ class Game:
     
     def _update_game_logic(self):
         """Core game update logic (can be called multiple times for speed)"""
-        # Update current wave
-        if self.current_wave:
-            self.current_wave.update()
-            
-            # Check for escaped enemies
-            escaped = self.current_wave.get_escaped_enemies()
-            for enemy in escaped:
-                self.lives -= 1
-                if self.lives <= 0:
-                    self.state = "game_over"
-            
-            # Check for killed enemies
-            dead = self.current_wave.get_dead_enemies()
-            for enemy in dead:
-                # Apply money multiplier
-                money_mult = DIFFICULTY_MODIFIERS[self.difficulty]["money_mult"]
-                self.money += int(enemy.reward * money_mult)
-            
-            # Check for victory (wave 10 completed in normal mode, endless continues)
-            if self.game_mode == "normal" and self.wave_number >= 10 and self.current_wave.completed:
+        # Update waves (single or multi-lane)
+        waves_to_update = self.current_waves if self.game_mode == "multi_lane" else ([self.current_wave] if self.current_wave else [])
+        
+        for wave in waves_to_update:
+            if wave:
+                wave.update()
+                
+                # Check for escaped enemies
+                escaped = wave.get_escaped_enemies()
+                for enemy in escaped:
+                    self.lives -= 1
+                    if self.lives <= 0:
+                        self.state = "game_over"
+                
+                # Check for killed enemies
+                dead = wave.get_dead_enemies()
+                for enemy in dead:
+                    # Apply money multiplier
+                    money_mult = DIFFICULTY_MODIFIERS[self.difficulty]["money_mult"]
+                    self.money += int(enemy.reward * money_mult)
+        
+        # Check for victory/wave completion
+        if self.game_mode == "multi_lane":
+            all_completed = all(w.completed for w in self.current_waves)
+            if self.wave_number >= 10 and all_completed:
                 self.state = "victory"
-            elif self.game_mode == "endless" and self.current_wave.completed:
-                # Auto-start next wave in endless mode
-                self.start_next_wave()
+        elif self.game_mode == "normal" and self.current_wave:
+            if self.wave_number >= 10 and self.current_wave.completed:
+                self.state = "victory"
+        elif self.game_mode == "endless" and self.current_wave and self.current_wave.completed:
+            # Auto-start next wave in endless mode
+            self.start_next_wave()
+        
+        # Get all active enemies from all waves
+        all_active_enemies = []
+        for wave in waves_to_update:
+            if wave:
+                all_active_enemies.extend(wave.get_active_enemies())
         
         # Update towers and create projectiles
-        if self.current_wave:
-            active_enemies = self.current_wave.get_active_enemies()
-            for tower in self.towers:
-                projectile = tower.update(active_enemies)
-                if projectile:
-                    self.projectiles.append(projectile)
+        for tower in self.towers:
+            projectile = tower.update(all_active_enemies)
+            if projectile:
+                self.projectiles.append(projectile)
         
         # Update projectiles
         for projectile in self.projectiles[:]:
             projectile.update()
             if not projectile.active:
                 self.projectiles.remove(projectile)
+        
+        # Update barriers - check for enemies colliding with them
+        for barrier in self.barriers[:]:
+            if not barrier.alive:
+                # Remove dead barriers from grid
+                self.grid[barrier.grid_x][barrier.grid_y] = "path"
+                self.barriers.remove(barrier)
+                continue
+            
+            # Check if any enemy is on this barrier cell
+            for enemy in all_active_enemies:
+                enemy_grid_x = int(enemy.position.x // GRID_SIZE)
+                enemy_grid_y = int(enemy.position.y // GRID_SIZE)
+                if enemy_grid_x == barrier.grid_x and enemy_grid_y == barrier.grid_y:
+                    # Enemy damages barrier
+                    barrier.take_damage(1)  # Damage per frame when enemy is on it
     
     def draw(self):
         """Draw everything"""
@@ -292,11 +386,13 @@ class Game:
         pygame.display.flip()
     
     def _draw_path(self):
-        """Draw the path"""
-        for i in range(len(PATH_WAYPOINTS) - 1):
-            start = PATH_WAYPOINTS[i]
-            end = PATH_WAYPOINTS[i + 1]
-            pygame.draw.line(self.screen, BROWN, start, end, 40)
+        """Draw the path(s)"""
+        # Draw all paths
+        for path_waypoints in self.current_paths:
+            for i in range(len(path_waypoints) - 1):
+                start = path_waypoints[i]
+                end = path_waypoints[i + 1]
+                pygame.draw.line(self.screen, BROWN, start, end, 40)
     
     def _draw_mode_select(self):
         """Draw mode/difficulty selection screen"""
@@ -323,11 +419,14 @@ class Game:
             y_pos += 80
         
         # Game mode selection
-        mode_title = self.ui.font_medium.render("Or Press E for Endless Mode", True, BLUE)
-        self.screen.blit(mode_title, (SCREEN_WIDTH // 2 - 180, 550))
+        mode_title = self.ui.font_medium.render("Special Modes:", True, BLUE)
+        self.screen.blit(mode_title, (SCREEN_WIDTH // 2 - 100, 520))
         
-        endless_desc = self.ui.font_small.render("Infinite waves with random enemies", True, BLACK)
-        self.screen.blit(endless_desc, (SCREEN_WIDTH // 2 - 140, 580))
+        endless_text = self.ui.font_small.render("E - Endless Mode (Random path, infinite waves)", True, BLACK)
+        self.screen.blit(endless_text, (SCREEN_WIDTH // 2 - 180, 555))
+        
+        multi_text = self.ui.font_small.render("M - Multi-Lane Mode (Defend 2 paths!)", True, BLACK)
+        self.screen.blit(multi_text, (SCREEN_WIDTH // 2 - 150, 585))
     
     def _draw_menu(self):
         """Draw menu screen"""
@@ -354,12 +453,19 @@ class Game:
     
     def _draw_game(self):
         """Draw game elements"""
+        # Draw barriers
+        for barrier in self.barriers:
+            barrier.draw(self.screen)
+        
         # Draw towers
         for tower in self.towers:
             tower.draw(self.screen)
         
-        # Draw enemies
-        if self.current_wave:
+        # Draw enemies (from all waves)
+        if self.game_mode == "multi_lane":
+            for wave in self.current_waves:
+                wave.draw(self.screen)
+        elif self.current_wave:
             self.current_wave.draw(self.screen)
         
         # Draw projectiles
@@ -370,7 +476,9 @@ class Game:
         self.ui.draw_hud(self.screen, self.money, self.lives, self.wave_number, 
                         self.game_mode, self.difficulty)
         self.ui.draw_tower_buttons(self.screen, self.money)
-        self.ui.draw_control_buttons(self.screen)
+        # Show barrier button only in hard mode
+        show_barrier = self.difficulty == "hard"
+        self.ui.draw_control_buttons(self.screen, show_barrier)
         
         # Draw selected tower info
         if self.selected_tower:
@@ -384,6 +492,18 @@ class Game:
             valid = self._can_place_tower(grid_x, grid_y)
             self.ui.draw_tower_ghost(self.screen, self.ui.selected_tower_type, 
                                     grid_x, grid_y, valid)
+        
+        # Draw barrier ghost
+        if self.placing_barrier:
+            mouse_pos = pygame.mouse.get_pos()
+            grid_x = mouse_pos[0] // GRID_SIZE
+            grid_y = mouse_pos[1] // GRID_SIZE
+            valid = self._can_place_barrier(grid_x, grid_y)
+            # Draw ghost barrier
+            ghost_rect = pygame.Rect(grid_x * GRID_SIZE + 5, grid_y * GRID_SIZE + 5,
+                                    GRID_SIZE - 10, GRID_SIZE - 10)
+            ghost_color = GREEN if valid else RED
+            pygame.draw.rect(self.screen, ghost_color, ghost_rect, 3)
     
     def _draw_pause_overlay(self):
         """Draw pause overlay"""

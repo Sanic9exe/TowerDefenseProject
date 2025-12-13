@@ -61,6 +61,7 @@ class UI:
         self.next_wave_button = Button(SCREEN_WIDTH - 150, 20, 130, 40, "Next Wave", GREEN)
         self.pause_button = Button(SCREEN_WIDTH - 150, 70, 130, 40, "Pause", GRAY)
         self.speed_button = Button(SCREEN_WIDTH - 150, 120, 130, 40, "Speed: 1x", YELLOW)
+        self.barrier_button = Button(SCREEN_WIDTH - 150, 170, 130, 40, "Barrier\n$50", BROWN)
         
         # Tower action buttons (shown when tower selected)
         self.upgrade_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 170, 130, 40, "Upgrade", GREEN)
@@ -104,11 +105,13 @@ class UI:
                 lock_text = lock_font.render("🔒", True, BLACK)
                 screen.blit(lock_text, (button.rect.centerx - 10, button.rect.centery - 10))
     
-    def draw_control_buttons(self, screen):
+    def draw_control_buttons(self, screen, show_barrier=False):
         """Draw control buttons"""
         self.next_wave_button.draw(screen)
         self.pause_button.draw(screen)
         self.speed_button.draw(screen)
+        if show_barrier:
+            self.barrier_button.draw(screen)
     
     def draw_tower_info(self, screen, tower, money):
         """Draw selected tower information and action buttons"""
@@ -176,6 +179,7 @@ class UI:
         self.next_wave_button.update_hover(mouse_pos)
         self.pause_button.update_hover(mouse_pos)
         self.speed_button.update_hover(mouse_pos)
+        self.barrier_button.update_hover(mouse_pos)
         self.upgrade_button.update_hover(mouse_pos)
         self.sell_button.update_hover(mouse_pos)
         self.target_button.update_hover(mouse_pos)

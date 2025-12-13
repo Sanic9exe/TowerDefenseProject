@@ -81,6 +81,9 @@ class Tower:
         self.target = None
         self.selected = False
         self.rotation_angle = 0  # For visual rotation
+        self.target_angle = 0  # Angle to current target
+        self.recoil_timer = 0  # For firing recoil animation
+        self.charge_timer = 0  # For charge-up animation
         
     def find_target(self, enemies):
         """Find enemy based on targeting mode"""
@@ -127,6 +130,7 @@ class Tower:
         if self.cooldown <= 0:
             self.cooldown = self.fire_rate
             self.has_fired = True
+            self.recoil_timer = 10  # Start recoil animation
             return Projectile(self.position.x, self.position.y, 
                             target, self.damage, self.projectile_speed, self.tower_type)
         return None
@@ -136,9 +140,34 @@ class Tower:
         if self.cooldown > 0:
             self.cooldown -= 1
         
+        # Update recoil animation
+        if self.recoil_timer > 0:
+            self.recoil_timer -= 1
+        
+        # Update charge animation (for laser and sniper)
+        if self.tower_type in ["laser", "sniper"]:
+            if self.cooldown > self.fire_rate * 0.8:
+                self.charge_timer = min(10, self.charge_timer + 1)
+            else:
+                self.charge_timer = max(0, self.charge_timer - 1)
+        
         # Find and shoot at target
         self.target = self.find_target(enemies)
         if self.target:
+            # Update rotation to face target
+            dx = self.target.position.x - self.position.x
+            dy = self.target.position.y - self.position.y
+            self.target_angle = math.atan2(dy, dx)
+            
+            # Smooth rotation
+            angle_diff = self.target_angle - self.rotation_angle
+            # Normalize angle difference to -pi to pi
+            while angle_diff > math.pi:
+                angle_diff -= 2 * math.pi
+            while angle_diff < -math.pi:
+                angle_diff += 2 * math.pi
+            self.rotation_angle += angle_diff * 0.3  # Smooth rotation speed
+            
             return self.shoot(self.target)
         return None
     
@@ -179,8 +208,11 @@ class Tower:
         self.targeting_mode = TARGETING_MODES[(current_index + 1) % len(TARGETING_MODES)]
     
     def draw(self, screen):
-        """Draw tower and range if selected"""
-        # Draw tower
+        """Draw tower with animations"""
+        # Calculate recoil offset
+        recoil_offset = self.recoil_timer if self.recoil_timer > 0 else 0
+        
+        # Draw tower base
         tower_rect = pygame.Rect(self.grid_x * GRID_SIZE + 10,
                                 self.grid_y * GRID_SIZE + 10,
                                 GRID_SIZE - 20, GRID_SIZE - 20)
@@ -189,6 +221,28 @@ class Tower:
         # Draw border
         border_color = YELLOW if self.selected else BLACK
         pygame.draw.rect(screen, border_color, tower_rect, 2)
+        
+        # Draw barrel/turret that rotates
+        if self.target:
+            barrel_length = 15 - recoil_offset  # Recoil effect
+            barrel_end_x = self.position.x + math.cos(self.rotation_angle) * barrel_length
+            barrel_end_y = self.position.y + math.sin(self.rotation_angle) * barrel_length
+            
+            # Draw barrel
+            pygame.draw.line(screen, BLACK, 
+                           (int(self.position.x), int(self.position.y)),
+                           (int(barrel_end_x), int(barrel_end_y)), 4)
+            
+            # Draw barrel tip
+            pygame.draw.circle(screen, BLACK, (int(barrel_end_x), int(barrel_end_y)), 3)
+        
+        # Draw charge effect for laser/sniper
+        if self.charge_timer > 0 and self.tower_type in ["laser", "sniper"]:
+            charge_color = BLUE if self.tower_type == "laser" else RED
+            charge_radius = 5 + self.charge_timer
+            pygame.draw.circle(screen, charge_color, 
+                             (int(self.position.x), int(self.position.y)),
+                             charge_radius, 1)
         
         # Draw level indicator
         font = pygame.font.Font(None, 20)
