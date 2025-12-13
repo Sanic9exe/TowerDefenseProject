@@ -19,14 +19,18 @@ class Button:
         pygame.draw.rect(screen, BLACK, self.rect, 2)
         
         font = pygame.font.Font(None, 20)
+        font_height = font.get_height()
+        
         # Handle multiline text
         lines = self.text.split('\n')
-        y_offset = self.rect.centery - (len(lines) * 10)
+        total_height = len(lines) * font_height
+        y_offset = self.rect.centery - (total_height // 2)
+        
         for line in lines:
             text_surface = font.render(line, True, BLACK)
-            text_rect = text_surface.get_rect(center=(self.rect.centerx, y_offset))
+            text_rect = text_surface.get_rect(center=(self.rect.centerx, y_offset + font_height // 2))
             screen.blit(text_surface, text_rect)
-            y_offset += 20
+            y_offset += font_height
     
     def is_clicked(self, pos):
         """Check if button is clicked"""

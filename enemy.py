@@ -83,9 +83,10 @@ class Enemy:
                         (health_bar_x, health_bar_y, health_bar_width, health_bar_height))
         
         # Health bar foreground (green)
-        pygame.draw.rect(screen, GREEN,
-                        (health_bar_x, health_bar_y, 
-                         int(health_bar_width * health_percentage), health_bar_height))
+        if self.max_health > 0:
+            pygame.draw.rect(screen, GREEN,
+                            (health_bar_x, health_bar_y, 
+                             int(health_bar_width * health_percentage), health_bar_height))
     
     def update(self):
         """Update enemy state"""

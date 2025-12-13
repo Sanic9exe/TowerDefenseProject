@@ -24,17 +24,14 @@ class Projectile:
         direction = self.target.position - self.position
         distance = direction.length()
         
+        # Hit the target if close enough or at same position
         if distance <= self.speed:
-            # Hit the target
             self.target.take_damage(self.damage)
             self.active = False
         elif distance > 0:
+            # Only normalize if distance is non-zero
             direction = direction.normalize()
             self.position += direction * self.speed
-        else:
-            # Already at target position
-            self.target.take_damage(self.damage)
-            self.active = False
     
     def draw(self, screen):
         """Draw projectile"""
