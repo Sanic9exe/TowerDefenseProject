@@ -72,15 +72,19 @@ class Game:
     
     def _setup_game_mode(self):
         """Set up paths based on game mode"""
-        if self.game_mode == "endless":
-            # Generate random path for endless mode
+        if self.game_mode == "endless" or self.game_mode == "path_randomizer":
+            # Generate random path for endless and path randomizer modes
             self.current_paths = [generate_random_path()]
         elif self.game_mode == "multi_lane":
             # Generate two paths for multi-lane mode
             path1, path2 = generate_multi_lane_paths()
             self.current_paths = [path1, path2]
+        elif self.game_mode == "reverse":
+            # Reverse mode: use default path but game logic is different
+            self.current_paths = [PATH_WAYPOINTS]
+            # TODO: Implement reverse mode logic where player controls enemies
         else:
-            # Use default path for normal mode
+            # Use default path for normal/one_life mode
             self.current_paths = [PATH_WAYPOINTS]
         
         # Re-mark path cells
@@ -104,6 +108,15 @@ class Game:
             if self.current_wave is None or self.current_wave.completed:
                 self.wave_number += 1
                 is_endless = (self.game_mode == "endless")
+                
+                # Path randomizer: generate new path each wave
+                if self.game_mode == "path_randomizer":
+                    self.current_paths = [generate_random_path()]
+                    # Re-mark path cells
+                    self.grid = [[None if not isinstance(cell, Tower) else cell 
+                                 for cell in row] for row in self.grid]
+                    self._mark_path_cells()
+                
                 # Use the appropriate path
                 path = self.current_paths[0]
                 self.current_wave = Wave(self.wave_number, path, self.difficulty, is_endless)
@@ -154,6 +167,17 @@ class Game:
                         self.state = "menu"
                     elif event.key == pygame.K_m:  # Multi-lane mode
                         self.game_mode = "multi_lane"
+                        self.state = "menu"
+                    elif event.key == pygame.K_p:  # Path randomizer mode
+                        self.game_mode = "path_randomizer"
+                        self.state = "menu"
+                    elif event.key == pygame.K_o:  # One life mode
+                        self.game_mode = "one_life"
+                        self.lives = 1  # Only one life!
+                        self.money = STARTING_MONEY * 3  # Triple starting money
+                        self.state = "menu"
+                    elif event.key == pygame.K_r:  # Reverse mode
+                        self.game_mode = "reverse"
                         self.state = "menu"
             
             elif self.state == "menu":
@@ -386,7 +410,7 @@ class Game:
             all_completed = all(w.completed for w in self.current_waves)
             if self.wave_number >= self.total_waves and all_completed:
                 self.state = "victory"
-        elif self.game_mode == "normal" and self.current_wave:
+        elif self.game_mode in ["normal", "path_randomizer", "one_life"] and self.current_wave:
             if self.wave_number >= self.total_waves and self.current_wave.completed:
                 self.state = "victory"
         elif self.game_mode == "endless" and self.current_wave and self.current_wave.completed:
@@ -394,7 +418,7 @@ class Game:
             self.start_next_wave()
         
         # Auto-start waves if enabled (non-endless modes)
-        if self.ui.auto_start_waves and self.game_mode != "endless":
+        if self.ui.auto_start_waves and self.game_mode not in ["endless", "reverse"]:
             if self.game_mode == "multi_lane":
                 if all(w.completed for w in self.current_waves):
                     self.start_next_wave()
@@ -512,6 +536,15 @@ class Game:
         
         multi_text = self.ui.font_small.render("M - Multi-Lane Mode (Defend 2 paths!)", True, BLACK)
         self.screen.blit(multi_text, (SCREEN_WIDTH // 2 - 150, 585))
+        
+        path_text = self.ui.font_small.render("P - Path Randomizer (New path each wave!)", True, BLACK)
+        self.screen.blit(path_text, (SCREEN_WIDTH // 2 - 160, 615))
+        
+        one_life_text = self.ui.font_small.render("O - One Life Mode (1 life, 3x money!)", True, BLACK)
+        self.screen.blit(one_life_text, (SCREEN_WIDTH // 2 - 150, 645))
+        
+        reverse_text = self.ui.font_small.render("R - Reverse Mode (Control enemies! - WIP)", True, GRAY)
+        self.screen.blit(reverse_text, (SCREEN_WIDTH // 2 - 170, 675))
     
     def _draw_menu(self):
         """Draw menu screen"""
@@ -536,8 +569,15 @@ class Game:
         inst_rect = instructions.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
         self.screen.blit(instructions, inst_rect)
         
-        if self.game_mode == "normal" or self.game_mode == "multi_lane":
-            info = self.ui.font_small.render(f"Defend the path! Survive {self.total_waves} waves to win!", True, BLACK)
+        if self.game_mode == "normal" or self.game_mode == "multi_lane" or self.game_mode == "path_randomizer" or self.game_mode == "one_life":
+            info_text = f"Defend the path! Survive {self.total_waves} waves to win!"
+            if self.game_mode == "path_randomizer":
+                info_text = f"Path changes each wave! Survive {self.total_waves} waves!"
+            elif self.game_mode == "one_life":
+                info_text = f"ONE LIFE ONLY! But 3x money! Survive {self.total_waves} waves!"
+            info = self.ui.font_small.render(info_text, True, BLACK)
+        elif self.game_mode == "reverse":
+            info = self.ui.font_small.render("WIP: You'll control enemies vs AI towers!", True, GRAY)
         else:
             info = self.ui.font_small.render("Survive as long as you can!", True, BLACK)
         info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
