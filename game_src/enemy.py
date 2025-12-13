@@ -80,6 +80,67 @@ class Enemy:
             self.is_boss = True
             self.shield_regen_timer = 0
             self.shield_regen_delay = 180  # Regen after 3 seconds
+        elif enemy_type == "summoner":
+            self.max_health = int(200 * difficulty_mult)
+            self.speed = 1
+            self.reward = 80
+            self.color = (200, 50, 200)  # Magenta
+            self.radius = 18
+            self.is_air = False
+            self.shield = 0
+            self.splits = False
+            self.is_summoner = True
+            self.summon_timer = 0
+            self.summon_cooldown = 180  # Spawn every 3 seconds
+        elif enemy_type == "flying_fortress":
+            self.max_health = int(500 * difficulty_mult)
+            self.speed = 0.7
+            self.reward = 150
+            self.color = (100, 100, 200)  # Light blue-gray
+            self.radius = 25
+            self.is_air = True
+            self.shield = 0
+            self.splits = False
+            self.is_fortress = True
+            self.spawn_timer = 0
+            self.spawn_cooldown = 240  # Spawn ground units every 4 seconds
+        elif enemy_type == "decoy":
+            self.max_health = int(80 * difficulty_mult)
+            self.speed = 2.5
+            self.reward = 40
+            self.color = (255, 192, 203)  # Pink
+            self.radius = 14
+            self.is_air = False
+            self.shield = 0
+            self.splits = False
+            self.is_decoy = True
+            self.is_real = True  # Only one will be real
+            self.decoy_split_chance = 0.3  # 30% chance per hit
+            self.decoys_spawned = False
+        elif enemy_type == "decoy_fake":
+            # Fake decoy enemy
+            self.max_health = int(1 * difficulty_mult)  # Dies in one hit
+            self.speed = 2.5
+            self.reward = 0
+            self.color = (255, 192, 203, 128)  # Semi-transparent pink
+            self.radius = 14
+            self.is_air = False
+            self.shield = 0
+            self.splits = False
+            self.is_decoy = True
+            self.is_real = False
+            self.decoy_split_chance = 0
+            self.decoys_spawned = True
+            self.parent_decoy = None  # Reference to the real decoy
+        elif enemy_type == "swarm":
+            self.max_health = int(10 * difficulty_mult)
+            self.speed = 3
+            self.reward = 5
+            self.color = (150, 75, 0)  # Brown
+            self.radius = 8
+            self.is_air = False
+            self.shield = 0
+            self.splits = False
         else:
             # Default to basic
             self.max_health = int(100 * difficulty_mult)
@@ -95,8 +156,15 @@ class Enemy:
         self.alive = True
         self.reached_end = False
         self.is_boss = enemy_type == "boss"
+        self.is_summoner = hasattr(self, 'is_summoner') and self.is_summoner
+        self.is_fortress = hasattr(self, 'is_fortress') and self.is_fortress
+        self.is_decoy = hasattr(self, 'is_decoy') and self.is_decoy
         self.slow_effect = 1.0  # Multiplier for speed (1.0 = normal, 0.5 = half speed)
         self.slow_timer = 0  # Duration of slow effect
+        self.poison_damage = 0  # DOT from poison
+        self.poison_timer = 0  # Duration of poison effect
+        self.burn_damage = 0  # DOT from flamethrower
+        self.burn_timer = 0  # Duration of burn effect
         
     def move(self, barrier_grid=None):
         """Move enemy toward next waypoint, checking for barriers"""
@@ -144,8 +212,16 @@ class Enemy:
             
             self.position += direction_norm * effective_speed
     
-    def take_damage(self, damage, slow_effect=None, slow_duration=0):
-        """Reduce enemy health, accounting for shields and apply slow effect"""
+    def take_damage(self, damage, slow_effect=None, slow_duration=0, poison_dmg=0, poison_dur=0, burn_dmg=0, burn_dur=0):
+        """Reduce enemy health, accounting for shields and apply effects"""
+        # Check for decoy split on hit
+        if self.is_decoy and self.is_real and not self.decoys_spawned:
+            import random
+            if random.random() < self.decoy_split_chance:
+                self.decoys_spawned = True
+                # Will spawn decoys in wave update
+                self.should_spawn_decoys = True
+        
         if self.shield > 0:
             self.shield -= 1
             # Shield blocks damage but still counts as hit
@@ -159,6 +235,16 @@ class Enemy:
             if slow_effect is not None and slow_duration > 0:
                 self.slow_effect = slow_effect
                 self.slow_timer = slow_duration
+            
+            # Apply poison DOT
+            if poison_dmg > 0 and poison_dur > 0:
+                self.poison_damage = poison_dmg
+                self.poison_timer = poison_dur
+            
+            # Apply burn DOT
+            if burn_dmg > 0 and burn_dur > 0:
+                self.burn_damage = burn_dmg
+                self.burn_timer = burn_dur
             
             return True  # Indicates damage was dealt
     
@@ -221,6 +307,34 @@ class Enemy:
                 self.slow_timer -= 1
                 if self.slow_timer <= 0:
                     self.slow_effect = 1.0  # Reset to normal speed
+            
+            # Apply poison DOT
+            if self.poison_timer > 0:
+                self.health -= self.poison_damage
+                self.poison_timer -= 1
+                if self.health <= 0:
+                    self.alive = False
+            
+            # Apply burn DOT
+            if self.burn_timer > 0:
+                self.health -= self.burn_damage
+                self.burn_timer -= 1
+                if self.health <= 0:
+                    self.alive = False
+            
+            # Summoner spawning
+            if self.is_summoner and hasattr(self, 'summon_timer'):
+                self.summon_timer += 1
+                if self.summon_timer >= self.summon_cooldown:
+                    self.summon_timer = 0
+                    self.should_summon = True  # Flag for wave to spawn minion
+            
+            # Flying Fortress spawning
+            if self.is_fortress and hasattr(self, 'spawn_timer'):
+                self.spawn_timer += 1
+                if self.spawn_timer >= self.spawn_cooldown:
+                    self.spawn_timer = 0
+                    self.should_spawn_ground = True  # Flag for wave to spawn ground unit
             
             # Boss shield regeneration
             if self.is_boss and self.shield < 5:

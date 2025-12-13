@@ -44,7 +44,12 @@ TOWER_COSTS = {
     "laser": 300,
     "freeze": 250,
     "splash": 350,
-    "sniper": 400
+    "sniper": 400,
+    "drone": 500,
+    "railgun": 600,
+    "flamethrower": 300,
+    "poison": 350,
+    "economy": 400
 }
 
 # Tower targeting modes
@@ -58,7 +63,13 @@ BARRIER_COST = 50
 MAX_BARRIERS = 10  # Maximum number of barriers in hard mode
 
 # Game modes
-GAME_MODES = ["normal", "endless", "multi_lane"]
+GAME_MODES = ["normal", "endless", "multi_lane", "path_randomizer", "one_life", "reverse"]
+
+# Utility settings
+TIME_WARP_COST = 150
+TIME_WARP_DURATION = 180  # 3 seconds at 60 FPS
+TIME_WARP_RADIUS = 120
+TIME_WARP_SLOW = 0.3  # Slows to 30% speed
 
 # Path waypoints (x, y) coordinates
 PATH_WAYPOINTS = [

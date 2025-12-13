@@ -76,6 +76,58 @@ class Tower:
             self.color = (50, 50, 50)  # Dark
             self.projectile_speed = 15
             self.can_hit_air = True
+        elif tower_type == "drone":
+            self.range = 200
+            self.damage = 15
+            self.fire_rate = 180  # Low spawn rate for drones
+            self.cost = 500
+            self.upgrade_cost = 750
+            self.color = (150, 150, 200)  # Light purple
+            self.projectile_speed = 6
+            self.can_hit_air = True
+            self.drone_lifetime = 600  # Drones last 10 seconds
+        elif tower_type == "railgun":
+            self.range = 350  # Ultra-long range
+            self.damage = 80
+            self.fire_rate = 150  # Long cooldown
+            self.cost = 600
+            self.upgrade_cost = 900
+            self.color = (0, 255, 255)  # Cyan
+            self.projectile_speed = 20
+            self.can_hit_air = True
+            self.piercing = True  # Hits multiple enemies
+        elif tower_type == "flamethrower":
+            self.range = 80  # Short range
+            self.damage = 5  # Low damage per tick
+            self.fire_rate = 5  # Continuous damage
+            self.cost = 300
+            self.upgrade_cost = 450
+            self.color = (255, 69, 0)  # Orange-red
+            self.projectile_speed = 8
+            self.can_hit_air = False
+            self.cone_angle = 45  # degrees
+            self.dot_duration = 120  # Burn lasts 2 seconds
+        elif tower_type == "poison":
+            self.range = 150
+            self.damage = 3  # Low initial damage
+            self.fire_rate = 60
+            self.cost = 350
+            self.upgrade_cost = 525
+            self.color = (0, 200, 0)  # Green
+            self.projectile_speed = 7
+            self.can_hit_air = False
+            self.poison_damage = 2  # Damage per tick
+            self.poison_duration = 180  # 3 seconds of DOT
+        elif tower_type == "economy":
+            self.range = 0  # No attack range
+            self.damage = 0
+            self.fire_rate = 60  # Generate money every second
+            self.cost = 400
+            self.upgrade_cost = 600
+            self.color = (255, 215, 0)  # Gold
+            self.projectile_speed = 0
+            self.can_hit_air = False
+            self.income_per_cycle = 5  # Generates $5 per second
         
         self.cooldown = 0
         self.target = None
