@@ -334,7 +334,7 @@ class Game:
         
         # Update projectiles
         for projectile in self.projectiles[:]:
-            projectile.update()
+            projectile.update(all_active_enemies)  # Pass enemies for splash damage
             if not projectile.active:
                 self.projectiles.remove(projectile)
         

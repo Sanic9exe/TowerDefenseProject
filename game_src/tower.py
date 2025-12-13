@@ -131,8 +131,11 @@ class Tower:
             self.cooldown = self.fire_rate
             self.has_fired = True
             self.recoil_timer = 10  # Start recoil animation
+            
+            # Pass splash radius if this is a splash tower
+            splash_radius = self.splash_radius if hasattr(self, 'splash_radius') else 0
             return Projectile(self.position.x, self.position.y, 
-                            target, self.damage, self.projectile_speed, self.tower_type)
+                            target, self.damage, self.projectile_speed, self.tower_type, splash_radius)
         return None
     
     def update(self, enemies):
