@@ -90,8 +90,9 @@ class Enemy:
             self.shield = 0
             self.splits = False
             self.is_summoner = True
+            self.can_summon = True
             self.summon_timer = 0
-            self.summon_cooldown = 180  # Spawn every 3 seconds
+            self.summon_delay = 180  # Spawn every 3 seconds
         elif enemy_type == "flying_fortress":
             self.max_health = int(500 * difficulty_mult)
             self.speed = 0.7
@@ -102,8 +103,9 @@ class Enemy:
             self.shield = 0
             self.splits = False
             self.is_fortress = True
+            self.spawns_units = True
             self.spawn_timer = 0
-            self.spawn_cooldown = 240  # Spawn ground units every 4 seconds
+            self.spawn_delay = 240  # Spawn ground units every 4 seconds
         elif enemy_type == "decoy":
             self.max_health = int(80 * difficulty_mult)
             self.speed = 2.5
