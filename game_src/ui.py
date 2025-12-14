@@ -170,7 +170,12 @@ class UI:
             "laser": BLUE,
             "freeze": (100, 200, 255),
             "splash": (255, 100, 0),
-            "sniper": (50, 50, 50)
+            "sniper": (50, 50, 50),
+            "drone_swarm": (150, 150, 200),  # Light purple
+            "railgun": (0, 255, 255),  # Cyan
+            "flamethrower": (255, 69, 0),  # Orange-red
+            "poison": (0, 200, 0),  # Green
+            "economy": (255, 215, 0)  # Gold
         }
         
         if tower_type in tower_colors:
