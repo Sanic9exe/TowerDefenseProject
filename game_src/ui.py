@@ -121,8 +121,9 @@ class UI:
         self.next_wave_button.draw(screen)
         self.pause_button.draw(screen)
         self.speed_button.draw(screen)
-        if show_barrier:
-            self.barrier_button.draw(screen)
+        self.barrier_button.draw(screen)
+        self.auto_start_button.draw(screen)
+        self.timewarp_button.draw(screen)
     
     def draw_tower_info(self, screen, tower, money):
         """Draw selected tower information and action buttons"""
@@ -196,3 +197,5 @@ class UI:
         self.upgrade_button.update_hover(mouse_pos)
         self.sell_button.update_hover(mouse_pos)
         self.target_button.update_hover(mouse_pos)
+        self.auto_start_button.update_hover(mouse_pos)
+        self.timewarp_button.update_hover(mouse_pos)

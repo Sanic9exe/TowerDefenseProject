@@ -239,8 +239,8 @@ class Game:
             self.ui.speed_button.text = f"Speed: {self.game_speed}x"
             return
         
-        # Check barrier button (hard mode only)
-        if self.difficulty == "hard" and self.ui.barrier_button.is_clicked(pos):
+        # Check barrier button (all modes now)
+        if self.ui.barrier_button.is_clicked(pos):
             if self.money >= BARRIER_COST and len(self.barriers) < MAX_BARRIERS:
                 self.placing_barrier = True
                 self.ui.selected_tower_type = None
@@ -617,9 +617,8 @@ class Game:
         self.ui.draw_hud(self.screen, self.money, self.lives, self.wave_number, 
                         self.game_mode, self.difficulty)
         self.ui.draw_tower_buttons(self.screen, self.money)
-        # Show barrier button only in hard mode
-        show_barrier = self.difficulty == "hard"
-        self.ui.draw_control_buttons(self.screen, show_barrier)
+        # Barrier and time warp now available in all modes
+        self.ui.draw_control_buttons(self.screen)
         
         # Draw selected tower info
         if self.selected_tower:

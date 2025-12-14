@@ -60,7 +60,7 @@ SPEED_OPTIONS = [1, 2, 3]
 
 # Barrier settings
 BARRIER_COST = 50
-MAX_BARRIERS = 10  # Maximum number of barriers in hard mode
+MAX_BARRIERS = 10  # Maximum number of barriers (all modes)
 
 # Game modes
 GAME_MODES = ["normal", "endless", "multi_lane", "path_randomizer", "one_life", "reverse"]

@@ -11,7 +11,7 @@ class Barrier:
         self.grid_y = grid_y
         self.position = pygame.math.Vector2(grid_x * GRID_SIZE + GRID_SIZE // 2,
                                             grid_y * GRID_SIZE + GRID_SIZE // 2)
-        self.max_health = 200
+        self.max_health = 300  # Buffed from 200
         self.health = self.max_health
         self.alive = True
         self.cost = 50
