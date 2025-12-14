@@ -344,7 +344,9 @@ class Game:
         """Check if tower can be placed at position"""
         if grid_x < 0 or grid_x >= GRID_WIDTH or grid_y < 0 or grid_y >= GRID_HEIGHT:
             return False
-        return self.grid[grid_x][grid_y] is None
+        # Can only place on empty cells (not path, not occupied)
+        cell = self.grid[grid_x][grid_y]
+        return cell is None
     
     def _can_place_barrier(self, grid_x, grid_y):
         """Check if barrier can be placed at position (only on path)"""
