@@ -19,6 +19,7 @@ class Game:
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Tower Defense - Enhanced Edition")
         self.clock = pygame.time.Clock()
+        self.fullscreen = False  # Fullscreen toggle state
         
         # Game settings
         self.difficulty = "normal"  # easy, normal, hard
@@ -148,6 +149,15 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+            
+            # F8 toggles fullscreen at all times
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F8:
+                self.fullscreen = not self.fullscreen
+                if self.fullscreen:
+                    self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
+                else:
+                    self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+                continue
             
             if self.state == "mode_select":
                 if event.type == pygame.KEYDOWN:
