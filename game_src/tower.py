@@ -128,6 +128,7 @@ class Tower:
             self.projectile_speed = 0
             self.can_hit_air = False
             self.income_per_cycle = 5  # Generates $5 per second
+            self.generate_income = False  # Flag for income generation
         
         self.cooldown = 0
         self.target = None

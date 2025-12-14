@@ -449,6 +449,11 @@ class Game:
                 projectile = tower.update(all_active_enemies)
                 if projectile:
                     self.projectiles.append(projectile)
+            
+            # Handle economy tower income generation
+            if tower.tower_type == "economy" and hasattr(tower, 'generate_income') and tower.generate_income:
+                self.money += tower.income_per_cycle
+                tower.generate_income = False
         
         # Update projectiles
         for projectile in self.projectiles[:]:
