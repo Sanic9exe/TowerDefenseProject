@@ -51,25 +51,43 @@ class Game:
         self._mark_path_cells()
         
     def _mark_path_cells(self):
-        """Mark grid cells that are part of the path(s)"""
+        """Mark grid cells that are part of the path(s) using Bresenham's line algorithm"""
         # Mark all paths in current_paths
         for path_waypoints in self.current_paths:
             for i in range(len(path_waypoints) - 1):
                 start = path_waypoints[i]
                 end = path_waypoints[i + 1]
                 
-                # Mark cells between waypoints
+                # Use Bresenham's line algorithm to mark all cells along the path
                 x1, y1 = int(start[0] // GRID_SIZE), int(start[1] // GRID_SIZE)
                 x2, y2 = int(end[0] // GRID_SIZE), int(end[1] // GRID_SIZE)
                 
-                if x1 == x2:  # Vertical path
-                    for y in range(min(y1, y2), max(y1, y2) + 1):
-                        if 0 <= x1 < GRID_WIDTH and 0 <= y < GRID_HEIGHT:
-                            self.grid[x1][y] = "path"
-                else:  # Horizontal path
-                    for x in range(min(x1, x2), max(x1, x2) + 1):
-                        if 0 <= x < GRID_WIDTH and 0 <= y1 < GRID_HEIGHT:
-                            self.grid[x][y1] = "path"
+                # Bresenham's line algorithm
+                dx = abs(x2 - x1)
+                dy = abs(y2 - y1)
+                sx = 1 if x1 < x2 else -1
+                sy = 1 if y1 < y2 else -1
+                err = dx - dy
+                
+                x, y = x1, y1
+                while True:
+                    # Mark current cell and adjacent cells for path width
+                    for offset_x in range(-1, 2):
+                        for offset_y in range(-1, 2):
+                            gx, gy = x + offset_x, y + offset_y
+                            if 0 <= gx < GRID_WIDTH and 0 <= gy < GRID_HEIGHT:
+                                self.grid[gx][gy] = "path"
+                    
+                    if x == x2 and y == y2:
+                        break
+                    
+                    e2 = 2 * err
+                    if e2 > -dy:
+                        err -= dy
+                        x += sx
+                    if e2 < dx:
+                        err += dx
+                        y += sy
     
     def _setup_game_mode(self):
         """Set up paths based on game mode"""
@@ -358,26 +376,41 @@ class Game:
         # Can place if cell is exactly "path" (not occupied by tower or barrier)
         if cell == "path":
             return True
-        # Also check if this position is geometrically on any path
+        # Also check if this position is geometrically on any path using point-to-line distance
         # This handles cases where path marking might have issues
         for path_waypoints in self.current_paths:
             for i in range(len(path_waypoints) - 1):
                 start = path_waypoints[i]
                 end = path_waypoints[i + 1]
                 
-                # Get grid positions
-                x1, y1 = int(start[0] // GRID_SIZE), int(start[1] // GRID_SIZE)
-                x2, y2 = int(end[0] // GRID_SIZE), int(end[1] // GRID_SIZE)
+                # Convert grid position to pixel position (center of cell)
+                px = (grid_x + 0.5) * GRID_SIZE
+                py = (grid_y + 0.5) * GRID_SIZE
                 
-                # Check if current position is on this path segment
-                if x1 == x2:  # Vertical path
-                    if grid_x == x1 and min(y1, y2) <= grid_y <= max(y1, y2):
-                        # On path, check if not occupied
-                        return cell == "path"
-                else:  # Horizontal path
-                    if grid_y == y1 and min(x1, x2) <= grid_x <= max(x1, x2):
-                        # On path, check if not occupied
-                        return cell == "path"
+                # Calculate distance from point to line segment
+                x1, y1 = start[0], start[1]
+                x2, y2 = end[0], end[1]
+                
+                # Vector from start to end
+                dx = x2 - x1
+                dy = y2 - y1
+                
+                # If start == end, just check distance to point
+                if dx == 0 and dy == 0:
+                    dist = ((px - x1) ** 2 + (py - y1) ** 2) ** 0.5
+                else:
+                    # Parameter t for closest point on line segment
+                    t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
+                    # Closest point on line segment
+                    closest_x = x1 + t * dx
+                    closest_y = y1 + t * dy
+                    # Distance from point to closest point
+                    dist = ((px - closest_x) ** 2 + (py - closest_y) ** 2) ** 0.5
+                
+                # If within path width (40px + some tolerance)
+                if dist <= 50:  # PATH_WIDTH is 40, adding tolerance
+                    # On path, check if not occupied
+                    return cell == "path"
         return False
     
     def update(self):

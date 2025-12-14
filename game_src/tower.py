@@ -78,7 +78,7 @@ class Tower:
             self.can_hit_air = True
         elif tower_type == "drone":
             self.range = 200
-            self.damage = 15
+            self.damage = 8  # Nerfed
             self.fire_rate = 180  # Low spawn rate for drones
             self.cost = 500
             self.upgrade_cost = 750
@@ -86,6 +86,9 @@ class Tower:
             self.projectile_speed = 6
             self.can_hit_air = True
             self.drone_lifetime = 600  # Drones last 10 seconds
+            self.is_drone_tower = True
+            self.drone_spawn_timer = 0
+            self.drone_spawn_delay = 300
         elif tower_type == "railgun":
             self.range = 350  # Ultra-long range
             self.damage = 80
@@ -128,6 +131,10 @@ class Tower:
             self.projectile_speed = 0
             self.can_hit_air = False
             self.income_per_cycle = 5  # Generates $5 per second
+            self.is_economy = True
+            self.income_timer = 0
+            self.income_interval = 60  # Generate income every 60 frames
+            self.income_amount = 5
             self.generate_income = False  # Flag for income generation
         
         self.cooldown = 0
