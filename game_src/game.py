@@ -352,8 +352,33 @@ class Game:
         """Check if barrier can be placed at position (only on path)"""
         if grid_x < 0 or grid_x >= GRID_WIDTH or grid_y < 0 or grid_y >= GRID_HEIGHT:
             return False
-        # Barriers can only be placed on empty path cells
-        return self.grid[grid_x][grid_y] == "path"
+        # Check if this position is on the path (was marked as path initially)
+        # We need to check if it's a path cell and not occupied
+        cell = self.grid[grid_x][grid_y]
+        # Can place if cell is exactly "path" (not occupied by tower or barrier)
+        if cell == "path":
+            return True
+        # Also check if this position is geometrically on any path
+        # This handles cases where path marking might have issues
+        for path_waypoints in self.current_paths:
+            for i in range(len(path_waypoints) - 1):
+                start = path_waypoints[i]
+                end = path_waypoints[i + 1]
+                
+                # Get grid positions
+                x1, y1 = int(start[0] // GRID_SIZE), int(start[1] // GRID_SIZE)
+                x2, y2 = int(end[0] // GRID_SIZE), int(end[1] // GRID_SIZE)
+                
+                # Check if current position is on this path segment
+                if x1 == x2:  # Vertical path
+                    if grid_x == x1 and min(y1, y2) <= grid_y <= max(y1, y2):
+                        # On path, check if not occupied
+                        return cell == "path"
+                else:  # Horizontal path
+                    if grid_y == y1 and min(x1, x2) <= grid_x <= max(x1, x2):
+                        # On path, check if not occupied
+                        return cell == "path"
+        return False
     
     def update(self):
         """Update game state"""
