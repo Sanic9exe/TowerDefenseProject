@@ -651,11 +651,16 @@ class Game:
             grid_x = mouse_pos[0] // GRID_SIZE
             grid_y = mouse_pos[1] // GRID_SIZE
             valid = self._can_place_barrier(grid_x, grid_y)
-            # Draw ghost barrier
-            ghost_rect = pygame.Rect(grid_x * GRID_SIZE + 5, grid_y * GRID_SIZE + 5,
-                                    GRID_SIZE - 10, GRID_SIZE - 10)
+            # Draw semi-transparent filled square with border (like towers)
+            ghost_surface = pygame.Surface((GRID_SIZE - 10, GRID_SIZE - 10))
+            ghost_surface.set_alpha(128)
+            ghost_surface.fill((139, 69, 19))  # Brown color for barrier
+            self.screen.blit(ghost_surface, (grid_x * GRID_SIZE + 5, grid_y * GRID_SIZE + 5))
+            # Draw colored border
             ghost_color = GREEN if valid else RED
-            pygame.draw.rect(self.screen, ghost_color, ghost_rect, 3)
+            pygame.draw.rect(self.screen, ghost_color, 
+                           (grid_x * GRID_SIZE + 5, grid_y * GRID_SIZE + 5,
+                            GRID_SIZE - 10, GRID_SIZE - 10), 3)
         
         # Draw time warp ghost
         if self.placing_time_warp:
