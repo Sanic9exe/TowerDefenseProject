@@ -50,7 +50,7 @@ class TestMode:
         self.grid_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.draw_grid_overlay()
         # Initialize grid for tower placement tracking
-        self.grid = [[None for _ in range(GRID_COLS)] for _ in range(GRID_ROWS)]
+        self.grid = [[None for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
 
     def draw_grid_overlay(self):
         self.grid_overlay.fill((0, 0, 0, 0))
@@ -67,7 +67,7 @@ class TestMode:
     def place_tower(self, grid_pos):
         grid_x, grid_y = grid_pos
         # Check if cell is already occupied
-        if 0 <= grid_x < GRID_COLS and 0 <= grid_y < GRID_ROWS:
+        if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
             if self.grid[grid_y][grid_x] is None:
                 tower_type = TOWER_TYPES[self.selected_tower]
                 tower = Tower(grid_x, grid_y, tower_type)
@@ -79,7 +79,7 @@ class TestMode:
     def place_barrier(self, grid_pos):
         grid_x, grid_y = grid_pos
         # Check if cell is already occupied
-        if 0 <= grid_x < GRID_COLS and 0 <= grid_y < GRID_ROWS:
+        if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
             if self.grid[grid_y][grid_x] is None:
                 barrier = Barrier(grid_x, grid_y)
                 self.barriers.append(barrier)
@@ -132,7 +132,7 @@ class TestMode:
                     self.towers.clear()
                     self.time_warps.clear()
                     self.barriers.clear()
-                    self.grid = [[None for _ in range(GRID_COLS)] for _ in range(GRID_ROWS)]
+                    self.grid = [[None for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
                     self.lives = 100
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = event.pos
@@ -155,7 +155,7 @@ class TestMode:
             if not barrier.alive:
                 self.barriers.remove(barrier)
                 grid_x, grid_y = barrier.grid_x, barrier.grid_y
-                if 0 <= grid_x < GRID_COLS and 0 <= grid_y < GRID_ROWS:
+                if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
                     self.grid[grid_y][grid_x] = None
         
         # Get active enemies for targeting

@@ -76,7 +76,7 @@ class Tower:
             self.color = (50, 50, 50)  # Dark
             self.projectile_speed = 15
             self.can_hit_air = True
-        elif tower_type == "drone":
+        elif tower_type == "drone_swarm":
             self.range = 200
             self.damage = 8  # Nerfed
             self.fire_rate = 180  # Low spawn rate for drones
