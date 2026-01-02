@@ -78,6 +78,27 @@ class UI:
         self.sell_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 100, 130, 35, "Sell", RED)
         self.target_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 60, 130, 35, "Target", BLUE)
         
+        # Reverse Mode specific buttons
+        self.reverse_commit_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 100, 130, 40, "Commit\nSpawns", GREEN)
+        self.reverse_clear_button = Button(SCREEN_WIDTH - 150, SCREEN_HEIGHT - 55, 130, 40, "Clear\nQueue", RED)
+        self.reverse_next_wave_button = Button(SCREEN_WIDTH // 2 - 65, SCREEN_HEIGHT // 2 + 50, 130, 40, "Next Wave", GREEN)
+        
+        # Reverse Mode enemy spawn buttons (11 types)
+        self.enemy_buttons = {}
+        button_y_start = 200
+        button_spacing = 55
+        enemy_types = ["basic", "fast", "tank", "shielded", "splitter", "air", 
+                      "summoner", "flying_fortress", "decoy", "swarm", "boss"]
+        for i, enemy_type in enumerate(enemy_types):
+            cost = ENEMY_SPAWN_COSTS.get(enemy_type, 0)
+            label = enemy_type.replace("_", " ").title()[:8]  # Shorten long names
+            self.enemy_buttons[enemy_type] = Button(
+                20, button_y_start + (i * button_spacing), 
+                90, 50, 
+                f"{label}\n${cost}", 
+                (200, 100, 100)
+            )
+        
         self.selected_tower_type = None
         self.unlocked_towers = {"arrow", "cannon", "laser"}  # Start with basic towers
         self.auto_start_waves = False  # QOL: auto-start toggle
@@ -204,3 +225,60 @@ class UI:
         self.target_button.update_hover(mouse_pos)
         self.auto_start_button.update_hover(mouse_pos)
         self.timewarp_button.update_hover(mouse_pos)
+        
+        # Reverse mode buttons
+        for button in self.enemy_buttons.values():
+            button.update_hover(mouse_pos)
+        self.reverse_commit_button.update_hover(mouse_pos)
+        self.reverse_clear_button.update_hover(mouse_pos)
+        self.reverse_next_wave_button.update_hover(mouse_pos)
+    
+    def draw_reverse_ui(self, screen, reverse_state, reverse_budget, reverse_queue, reverse_score, wave_number, ai_budget):
+        """Draw Reverse Mode specific UI"""
+        # Draw phase indicator
+        phase_text = {
+            "planning": "PLANNING PHASE - Select Enemies",
+            "ai_placing": "AI PLACING TOWERS...",
+            "wave_active": "WAVE IN PROGRESS",
+            "wave_complete": "WAVE COMPLETE!"
+        }
+        phase = self.font_medium.render(phase_text.get(reverse_state, ""), True, BLACK)
+        screen.blit(phase, (SCREEN_WIDTH // 2 - 150, 10))
+        
+        # Draw budget
+        budget = self.font_small.render(f"Budget: ${reverse_budget}", True, BLACK)
+        screen.blit(budget, (SCREEN_WIDTH - 150, 10))
+        
+        # Draw score
+        score = self.font_small.render(f"Through: {reverse_score}", True, BLACK)
+        screen.blit(score, (SCREEN_WIDTH - 150, 35))
+        
+        # Draw wave info
+        wave = self.font_small.render(f"Wave: {wave_number}/10", True, BLACK)
+        screen.blit(wave, (SCREEN_WIDTH - 150, 60))
+        
+        # Draw AI budget
+        ai_budget_text = self.font_small.render(f"AI: ${ai_budget}", True, DARK_GRAY)
+        screen.blit(ai_budget_text, (SCREEN_WIDTH - 150, 85))
+        
+        # Draw queue
+        if reverse_queue:
+            queue_label = self.font_small.render(f"Queue ({len(reverse_queue)}/20):", True, BLACK)
+            screen.blit(queue_label, (120, 200))
+            for i, enemy_type in enumerate(reverse_queue[:10]):  # Show first 10
+                enemy_text = self.font_small.render(f"{i+1}. {enemy_type}", True, BLACK)
+                screen.blit(enemy_text, (120, 225 + i * 20))
+            if len(reverse_queue) > 10:
+                more_text = self.font_small.render(f"...+{len(reverse_queue)-10} more", True, GRAY)
+                screen.blit(more_text, (120, 425))
+        
+        # Draw enemy spawn buttons only in planning phase
+        if reverse_state == "planning":
+            for enemy_type, button in self.enemy_buttons.items():
+                button.draw(screen)
+            self.reverse_commit_button.draw(screen)
+            self.reverse_clear_button.draw(screen)
+        
+        # Draw next wave button in wave_complete phase
+        if reverse_state == "wave_complete":
+            self.reverse_next_wave_button.draw(screen)

@@ -132,6 +132,12 @@ class Game:
     
     def start_next_wave(self):
         """Start the next wave"""
+        # Reverse mode doesn't use this - wave starts when player commits enemies
+        if self.game_mode == "reverse":
+            self.wave_number += 1
+            self.reverse_state = "planning"
+            return
+        
         if self.game_mode == "multi_lane":
             # Multi-lane: check if all waves completed
             all_completed = all(w.completed for w in self.current_waves) if self.current_waves else True
@@ -261,6 +267,11 @@ class Game:
     
     def _handle_click(self, pos):
         """Handle mouse clicks"""
+        # Reverse Mode specific handling
+        if self.game_mode == "reverse":
+            self._handle_reverse_click(pos)
+            return
+        
         # Check tower selection buttons (only unlocked towers)
         for tower_type, button in self.ui.tower_buttons.items():
             if button.is_clicked(pos) and tower_type in self.ui.unlocked_towers:
@@ -377,6 +388,58 @@ class Game:
                     for tower in self.towers:
                         tower.selected = False
                     self.selected_tower = None
+    
+    def _handle_reverse_click(self, pos):
+        """Handle clicks in Reverse Mode"""
+        # Check enemy spawn buttons (planning phase only)
+        if self.reverse_state == "planning":
+            for enemy_type, button in self.ui.enemy_buttons.items():
+                if button.is_clicked(pos):
+                    cost = ENEMY_SPAWN_COSTS.get(enemy_type, 0)
+                    if self.reverse_budget >= cost and len(self.reverse_queue) < 20:
+                        self.reverse_queue.append(enemy_type)
+                        # Don't deduct yet - deduct when committing
+                    return
+            
+            # Check commit button
+            if self.ui.reverse_commit_button.is_clicked(pos):
+                if self.reverse_queue:
+                    # Calculate total cost
+                    total_cost = sum(ENEMY_SPAWN_COSTS.get(et, 0) for et in self.reverse_queue)
+                    if self.reverse_budget >= total_cost:
+                        self.reverse_budget -= total_cost
+                        self.reverse_state = "ai_placing"
+                return
+            
+            # Check clear button
+            if self.ui.reverse_clear_button.is_clicked(pos):
+                self.reverse_queue.clear()
+                return
+        
+        # Check next wave button (wave_complete phase only)
+        if self.reverse_state == "wave_complete":
+            if self.ui.reverse_next_wave_button.is_clicked(pos):
+                # Check victory/defeat
+                if self.reverse_score >= 20:
+                    self.state = "victory"
+                elif self.wave_number >= 10:
+                    if self.reverse_score >= 10:
+                        self.state = "victory"
+                    else:
+                        self.state = "game_over"
+                else:
+                    # Start next wave
+                    self.wave_number += 1
+                    self.reverse_state = "planning"
+                    self.reverse_queue.clear()
+                return
+        
+        # Check speed button (always available)
+        if self.ui.speed_button.is_clicked(pos):
+            current_index = SPEED_OPTIONS.index(self.game_speed)
+            self.game_speed = SPEED_OPTIONS[(current_index + 1) % len(SPEED_OPTIONS)]
+            self.ui.speed_button.text = f"Speed: {self.game_speed}x"
+            return
     
     def _can_place_tower(self, grid_x, grid_y):
         """Check if tower can be placed at position"""
@@ -716,7 +779,7 @@ class Game:
         one_life_text = self.ui.font_small.render("O - One Life Mode (1 life, 3x money!)", True, BLACK)
         self.screen.blit(one_life_text, (SCREEN_WIDTH // 2 - 150, 645))
         
-        reverse_text = self.ui.font_small.render("R - Reverse Mode (Control enemies! - WIP)", True, GRAY)
+        reverse_text = self.ui.font_small.render("R - Reverse Mode (Control enemies vs AI towers!)", True, GREEN)
         self.screen.blit(reverse_text, (SCREEN_WIDTH // 2 - 170, 675))
     
     def _draw_menu(self):
@@ -750,7 +813,7 @@ class Game:
                 info_text = f"ONE LIFE ONLY! But 3x money! Survive {self.total_waves} waves!"
             info = self.ui.font_small.render(info_text, True, BLACK)
         elif self.game_mode == "reverse":
-            info = self.ui.font_small.render("WIP: You'll control enemies vs AI towers!", True, GRAY)
+            info = self.ui.font_small.render("Spawn enemies and get them through! AI defends with towers.", True, BLACK)
         else:
             info = self.ui.font_small.render("Survive as long as you can!", True, BLACK)
         info_rect = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
@@ -758,6 +821,11 @@ class Game:
     
     def _draw_game(self):
         """Draw game elements"""
+        # Handle Reverse Mode drawing separately
+        if self.game_mode == "reverse":
+            self._draw_reverse_game()
+            return
+        
         # Draw time warps (behind everything)
         for time_warp in self.time_warps:
             time_warp.draw(self.screen)
@@ -824,6 +892,35 @@ class Game:
             # Draw radius indicator
             pygame.draw.circle(self.screen, (100, 100, 255), mouse_pos, TIME_WARP_RADIUS, 2)
             pygame.draw.circle(self.screen, (50, 50, 200), mouse_pos, 10)
+    
+    def _draw_reverse_game(self):
+        """Draw Reverse Mode game elements"""
+        # Draw towers (AI controlled)
+        for tower in self.towers:
+            tower.draw(self.screen)
+        
+        # Draw enemies (player's)
+        if self.current_wave:
+            self.current_wave.draw(self.screen)
+        
+        # Draw projectiles
+        for projectile in self.projectiles:
+            projectile.draw(self.screen)
+        
+        # Draw Reverse Mode UI
+        ai_budget = self.ai_controller.budget if self.ai_controller else 0
+        self.ui.draw_reverse_ui(
+            self.screen,
+            self.reverse_state,
+            self.reverse_budget,
+            self.reverse_queue,
+            self.reverse_score,
+            self.wave_number,
+            ai_budget
+        )
+        
+        # Draw speed button (always available)
+        self.ui.speed_button.draw(self.screen)
     
     def _draw_pause_overlay(self):
         """Draw pause overlay"""
