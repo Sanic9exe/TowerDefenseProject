@@ -135,7 +135,6 @@ class Tower:
             self.income_timer = 0
             self.income_interval = 60  # Generate income every 60 frames
             self.income_amount = 5
-            self.generate_income = False  # Flag for income generation
         
         self.cooldown = 0
         self.target = None
@@ -209,7 +208,9 @@ class Tower:
         return None
     
     def update(self, enemies):
-        """Update tower state and shoot at enemies"""
+        """Update tower state and shoot at enemies
+        Returns: Projectile, list of Projectiles, integer (income), or None
+        """
         if self.cooldown > 0:
             self.cooldown -= 1
         
@@ -226,13 +227,86 @@ class Tower:
         
         # Economy tower generates income instead of shooting
         if self.tower_type == "economy":
-            if self.cooldown <= 0:
-                self.cooldown = self.fire_rate
-                # Flag for game to add income (handled in game loop)
-                self.generate_income = True
-            return None  # No projectile
+            self.income_timer += 1
+            if self.income_timer >= self.income_interval:
+                self.income_timer = 0
+                return self.income_amount  # Return income as integer
+            return None
         
-        # Find and shoot at target
+        # Drone tower spawns multiple independent drone projectiles
+        if hasattr(self, 'is_drone_tower') and self.is_drone_tower:
+            self.drone_spawn_timer += 1
+            if self.drone_spawn_timer >= self.drone_spawn_delay and self.cooldown <= 0:
+                # Find all enemies in range
+                targets_in_range = [e for e in enemies if self.distance_to(e) <= self.range 
+                                   and (not e.is_air or self.can_hit_air)]
+                if targets_in_range:
+                    # Spawn 2-3 drones targeting different enemies
+                    import random
+                    num_drones = min(3, len(targets_in_range))
+                    drones = []
+                    selected_targets = random.sample(targets_in_range, num_drones)
+                    for target in selected_targets:
+                        drone = Projectile(self.position.x, self.position.y, target,
+                                         self.damage, self.projectile_speed, self.tower_type)
+                        drones.append(drone)
+                    self.drone_spawn_timer = 0
+                    self.cooldown = self.fire_rate
+                    self.recoil_timer = 5
+                    return drones  # Return list of projectiles
+            return None
+        
+        # Flamethrower shoots in a cone at all enemies within it
+        if self.tower_type == "flamethrower":
+            if self.cooldown <= 0:
+                # Find all enemies in range
+                targets_in_range = [e for e in enemies if self.distance_to(e) <= self.range 
+                                   and not e.is_air]  # Flamethrower can't hit air
+                
+                if targets_in_range:
+                    # Get angle to primary target
+                    primary_target = targets_in_range[0]
+                    dx = primary_target.position.x - self.position.x
+                    dy = primary_target.position.y - self.position.y
+                    primary_angle = math.atan2(dy, dx)
+                    
+                    # Find all enemies within cone angle
+                    import math
+                    cone_half_angle = math.radians(self.cone_angle / 2)
+                    cone_targets = []
+                    
+                    for enemy in targets_in_range:
+                        ex = enemy.position.x - self.position.x
+                        ey = enemy.position.y - self.position.y
+                        enemy_angle = math.atan2(ey, ex)
+                        
+                        # Calculate angle difference
+                        angle_diff = abs(enemy_angle - primary_angle)
+                        # Normalize to 0-pi range
+                        if angle_diff > math.pi:
+                            angle_diff = 2 * math.pi - angle_diff
+                        
+                        if angle_diff <= cone_half_angle:
+                            cone_targets.append(enemy)
+                    
+                    # Create projectile for each enemy in cone
+                    if cone_targets:
+                        projectiles = []
+                        for target in cone_targets:
+                            burn_dmg = self.damage
+                            burn_dur = self.dot_duration if hasattr(self, 'dot_duration') else 0
+                            proj = Projectile(self.position.x, self.position.y, target,
+                                            self.damage, self.projectile_speed, self.tower_type,
+                                            0, False, 0, 0, burn_dmg, burn_dur)
+                            projectiles.append(proj)
+                        
+                        self.cooldown = self.fire_rate
+                        self.recoil_timer = 5
+                        self.target_angle = primary_angle
+                        return projectiles  # Return list of projectiles
+            return None
+        
+        # Find and shoot at target (normal towers)
         self.target = self.find_target(enemies)
         if self.target:
             # Update rotation to face target

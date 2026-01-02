@@ -129,7 +129,20 @@ class Wave:
                 else:
                     enemy.update(barrier_grid)
                 
-                # Handle summoner spawning
+                # Handle decoy spawning (check flag set in enemy.py)
+                if hasattr(enemy, 'should_spawn_decoys') and enemy.should_spawn_decoys:
+                    # Spawn 2-3 fake decoys at the real decoy's position
+                    import random
+                    num_decoys = random.randint(2, 3)
+                    for i in range(num_decoys):
+                        fake_decoy = Enemy(self.waypoints, "decoy_fake", diff_mult)
+                        fake_decoy.position = enemy.position.copy()
+                        fake_decoy.waypoint_index = enemy.waypoint_index
+                        fake_decoy.parent_decoy = enemy  # Reference to real decoy
+                        self.enemies.append(fake_decoy)
+                    enemy.should_spawn_decoys = False  # Clear flag
+                
+                # Handle summoner spawning (timer-based, consolidated here)
                 if hasattr(enemy, 'can_summon') and enemy.can_summon:
                     enemy.summon_timer += 1
                     if enemy.summon_timer >= enemy.summon_delay:
@@ -141,7 +154,7 @@ class Wave:
                         self.enemies.append(minion)
                         enemy.summon_timer = 0
                 
-                # Handle flying fortress spawning
+                # Handle flying fortress spawning (timer-based, consolidated here)
                 if hasattr(enemy, 'spawns_units') and enemy.spawns_units:
                     enemy.spawn_timer += 1
                     if enemy.spawn_timer >= enemy.spawn_delay:
@@ -186,6 +199,14 @@ class Wave:
                     split_enemy.waypoint_index = enemy.waypoint_index
                     split_enemy.reward = 5  # Less reward for split enemies
                     self.enemies.append(split_enemy)
+            
+            # Handle decoy death - kill all fake decoys when real one dies
+            if hasattr(enemy, 'is_decoy') and enemy.is_decoy and enemy.is_real:
+                for other_enemy in self.enemies[:]:
+                    if (hasattr(other_enemy, 'is_decoy') and other_enemy.is_decoy and 
+                        not other_enemy.is_real and hasattr(other_enemy, 'parent_decoy') and 
+                        other_enemy.parent_decoy == enemy):
+                        other_enemy.alive = False
         
         # Remove dead enemies from list
         self.enemies = [e for e in self.enemies if e.alive]

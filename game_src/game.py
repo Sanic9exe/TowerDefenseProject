@@ -503,27 +503,19 @@ class Game:
         
         # Update towers and create projectiles
         for tower in self.towers:
-            # Handle drone spawning towers
-            if hasattr(tower, 'is_drone_tower') and tower.is_drone_tower:
-                tower.drone_spawn_timer += 1
-                if tower.drone_spawn_timer >= tower.drone_spawn_delay:
-                    # Create a drone projectile that acts independently
-                    if all_active_enemies:
-                        target = tower._find_target(all_active_enemies)
-                        if target:
-                            projectile = tower.create_projectile(target)
-                            if projectile:
-                                self.projectiles.append(projectile)
-                                tower.drone_spawn_timer = 0
-            else:
-                projectile = tower.update(all_active_enemies)
-                if projectile:
-                    self.projectiles.append(projectile)
+            result = tower.update(all_active_enemies)
             
-            # Handle economy tower income generation
-            if tower.tower_type == "economy" and hasattr(tower, 'generate_income') and tower.generate_income:
-                self.money += tower.income_per_cycle
-                tower.generate_income = False
+            # Handle different return types from tower.update()
+            if result is not None:
+                if isinstance(result, int):
+                    # Economy tower returned income
+                    self.money += result
+                elif isinstance(result, list):
+                    # Drone/Flamethrower returned multiple projectiles
+                    self.projectiles.extend(result)
+                else:
+                    # Normal tower returned single projectile
+                    self.projectiles.append(result)
         
         # Update projectiles
         for projectile in self.projectiles[:]:
