@@ -49,8 +49,25 @@ class TestMode:
         self.small_font = pygame.font.Font(None, 18)
         self.grid_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.draw_grid_overlay()
-        # Initialize grid for tower placement tracking
-        self.grid = [[None for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+        # Initialize grid for tower placement tracking (x-first indexing to match main game)
+        self.grid = [[None for _ in range(GRID_HEIGHT)] for _ in range(GRID_WIDTH)]
+        # Mark path cells for barrier placement
+        self._mark_path_cells()
+
+    def _mark_path_cells(self):
+        """Mark grid cells that are part of the straight horizontal path"""
+        # STRAIGHT_PATH is horizontal from left to right at y=350
+        # Mark cells along this path
+        for waypoint in STRAIGHT_PATH:
+            x, y = waypoint
+            grid_x = int(x // GRID_SIZE)
+            grid_y = int(y // GRID_SIZE)
+            # Mark center cell and neighbors for path width
+            for offset_x in range(-1, 2):
+                for offset_y in range(-1, 2):
+                    gx, gy = grid_x + offset_x, grid_y + offset_y
+                    if 0 <= gx < GRID_WIDTH and 0 <= gy < GRID_HEIGHT:
+                        self.grid[gx][gy] = "path"
 
     def draw_grid_overlay(self):
         self.grid_overlay.fill((0, 0, 0, 0))
@@ -66,24 +83,28 @@ class TestMode:
 
     def place_tower(self, grid_pos):
         grid_x, grid_y = grid_pos
-        # Check if cell is already occupied
+        # Check if cell is already occupied and not on path
         if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
-            if self.grid[grid_y][grid_x] is None:
+            cell = self.grid[grid_x][grid_y]
+            # Can place towers only on empty cells (not path, not occupied)
+            if cell is None:
                 tower_type = TOWER_TYPES[self.selected_tower]
                 tower = Tower(grid_x, grid_y, tower_type)
                 self.towers.append(tower)
-                self.grid[grid_y][grid_x] = tower
+                self.grid[grid_x][grid_y] = tower
                 return True
         return False
     
     def place_barrier(self, grid_pos):
         grid_x, grid_y = grid_pos
-        # Check if cell is already occupied
+        # Check if cell is on path and not already occupied
         if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
-            if self.grid[grid_y][grid_x] is None:
+            cell = self.grid[grid_x][grid_y]
+            # Can place barriers only on path cells that aren't occupied
+            if cell == "path":
                 barrier = Barrier(grid_x, grid_y)
                 self.barriers.append(barrier)
-                self.grid[grid_y][grid_x] = barrier
+                self.grid[grid_x][grid_y] = barrier
                 return True
         return False
 
@@ -132,7 +153,10 @@ class TestMode:
                     self.towers.clear()
                     self.time_warps.clear()
                     self.barriers.clear()
-                    self.grid = [[None for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+                    # Reset grid with proper x-first indexing
+                    self.grid = [[None for _ in range(GRID_HEIGHT)] for _ in range(GRID_WIDTH)]
+                    # Re-mark path cells
+                    self._mark_path_cells()
                     self.lives = 100
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = event.pos
@@ -156,7 +180,8 @@ class TestMode:
                 self.barriers.remove(barrier)
                 grid_x, grid_y = barrier.grid_x, barrier.grid_y
                 if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
-                    self.grid[grid_y][grid_x] = None
+                    # Clear grid cell (return to "path" since barriers are only on paths)
+                    self.grid[grid_x][grid_y] = "path"
         
         # Get active enemies for targeting
         enemy_list = [e for e in self.enemies if e.alive and not e.reached_end]
