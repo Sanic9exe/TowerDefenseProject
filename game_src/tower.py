@@ -271,7 +271,6 @@ class Tower:
                     primary_angle = math.atan2(dy, dx)
                     
                     # Find all enemies within cone angle
-                    import math
                     cone_half_angle = math.radians(self.cone_angle / 2)
                     cone_targets = []
                     

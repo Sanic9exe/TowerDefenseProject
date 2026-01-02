@@ -71,6 +71,36 @@ TIME_WARP_DURATION = 180  # 3 seconds at 60 FPS
 TIME_WARP_RADIUS = 120
 TIME_WARP_SLOW = 0.3  # Slows to 30% speed
 
+# Enemy spawn costs (for Reverse Mode)
+ENEMY_SPAWN_COSTS = {
+    "basic": 20,
+    "fast": 30,
+    "tank": 60,
+    "shielded": 50,
+    "splitter": 70,
+    "air": 80,
+    "summoner": 120,
+    "flying_fortress": 150,
+    "decoy": 90,
+    "swarm": 100,  # Spawns 5 units
+    "boss": 200
+}
+
+# Enemy rewards (money earned when they reach end in Reverse Mode)
+ENEMY_REWARDS = {
+    "basic": 10,
+    "fast": 15,
+    "tank": 30,
+    "shielded": 25,
+    "splitter": 35,
+    "air": 40,
+    "summoner": 60,
+    "flying_fortress": 75,
+    "decoy": 45,
+    "swarm": 5,  # Per unit
+    "boss": 100
+}
+
 # Path waypoints (x, y) coordinates
 PATH_WAYPOINTS = [
     (0, 400),

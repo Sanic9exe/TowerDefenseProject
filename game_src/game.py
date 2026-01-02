@@ -12,6 +12,7 @@ from ui import UI
 from barrier import Barrier
 from utility import TimeWarp
 from map_generator import generate_random_path, generate_multi_lane_paths
+from ai_controller import AITowerController
 
 class Game:
     """Main game class"""
@@ -49,6 +50,15 @@ class Game:
         # Grid for tower placement
         self.grid = [[None for _ in range(GRID_HEIGHT)] for _ in range(GRID_WIDTH)]
         self._mark_path_cells()
+        
+        # Reverse Mode specific attributes
+        self.reverse_state = "planning"  # planning, ai_placing, wave_active, wave_complete
+        self.reverse_budget = 500  # Player budget for spawning enemies
+        self.reverse_queue = []  # Queued enemies to spawn
+        self.reverse_score = 0  # Enemies that reached the end
+        self.reverse_spawned = 0  # Total enemies spawned this wave
+        self.reverse_spawn_timer = 0  # Timer for spawning queued enemies
+        self.ai_controller = None  # Will be initialized when reverse mode starts
         
     def _mark_path_cells(self):
         """Mark grid cells that are part of the path(s) using Bresenham's line algorithm"""
@@ -99,9 +109,19 @@ class Game:
             path1, path2 = generate_multi_lane_paths()
             self.current_paths = [path1, path2]
         elif self.game_mode == "reverse":
-            # Reverse mode: use default path but game logic is different
+            # Reverse mode: use default path
             self.current_paths = [PATH_WAYPOINTS]
-            # TODO: Implement reverse mode logic where player controls enemies
+            # Initialize AI controller
+            path_cells = []
+            for gx in range(GRID_WIDTH):
+                for gy in range(GRID_HEIGHT):
+                    if self.grid[gx][gy] == "path":
+                        path_cells.append((gx, gy))
+            self.ai_controller = AITowerController(self.grid, path_cells)
+            self.reverse_state = "planning"
+            self.reverse_budget = 500
+            self.reverse_queue = []
+            self.reverse_score = 0
         else:
             # Use default path for normal/one_life mode
             self.current_paths = [PATH_WAYPOINTS]
@@ -424,6 +444,11 @@ class Game:
     
     def _update_game_logic(self):
         """Core game update logic (can be called multiple times for speed)"""
+        # Handle Reverse Mode separately
+        if self.game_mode == "reverse":
+            self._update_reverse_mode()
+            return
+        
         # Update economy towers - generate passive income
         for tower in self.towers:
             if hasattr(tower, 'is_economy') and tower.is_economy:
@@ -529,6 +554,87 @@ class Game:
                 # Remove dead barriers from grid
                 self.grid[barrier.grid_x][barrier.grid_y] = "path"
                 self.barriers.remove(barrier)
+    
+    def _update_reverse_mode(self):
+        """Update logic specifically for Reverse Mode"""
+        if self.reverse_state == "planning":
+            # Planning phase - player is queuing enemies
+            # No automatic updates, waiting for player to commit
+            pass
+        
+        elif self.reverse_state == "ai_placing":
+            # AI is placing towers
+            if self.ai_controller:
+                self.ai_controller.update_budget(self.wave_number)
+                # AI places towers
+                new_towers = self.ai_controller.place_towers()
+                for tower_type, grid_x, grid_y in new_towers:
+                    tower = Tower(grid_x, grid_y, tower_type)
+                    self.towers.append(tower)
+                    self.grid[grid_x][grid_y] = tower
+            
+            # Transition to wave active
+            self.reverse_state = "wave_active"
+            self.reverse_spawned = 0
+            self.reverse_spawn_timer = 0
+            # Start wave with empty enemies (we'll spawn manually)
+            self.current_wave = Wave(self.wave_number, self.current_paths[0], self.difficulty)
+            self.current_wave.enemies = []  # Clear auto-generated enemies
+        
+        elif self.reverse_state == "wave_active":
+            # Spawn enemies from queue
+            if self.reverse_queue and self.reverse_spawned < len(self.reverse_queue):
+                self.reverse_spawn_timer += 1
+                if self.reverse_spawn_timer >= 30:  # Spawn every 0.5 seconds
+                    enemy_type = self.reverse_queue[self.reverse_spawned]
+                    if enemy_type == "swarm":
+                        # Spawn 5 swarm units
+                        for _ in range(5):
+                            enemy = Enemy(enemy_type, self.current_paths[0], self.difficulty)
+                            self.current_wave.enemies.append(enemy)
+                    else:
+                        enemy = Enemy(enemy_type, self.current_paths[0], self.difficulty)
+                        self.current_wave.enemies.append(enemy)
+                    
+                    self.reverse_spawned += 1
+                    self.reverse_spawn_timer = 0
+            
+            # Update wave
+            if self.current_wave:
+                self.current_wave.update(self.grid)
+                
+                # Check for escaped enemies (player earns money)
+                escaped = self.current_wave.get_escaped_enemies()
+                for enemy in escaped:
+                    self.reverse_score += 1
+                    # Award money based on enemy type
+                    if enemy.enemy_type in ENEMY_REWARDS:
+                        self.reverse_budget += ENEMY_REWARDS[enemy.enemy_type]
+                
+                # Update towers and projectiles
+                all_active_enemies = self.current_wave.get_active_enemies()
+                
+                for tower in self.towers:
+                    result = tower.update(all_active_enemies)
+                    if result is not None:
+                        if isinstance(result, list):
+                            self.projectiles.extend(result)
+                        elif not isinstance(result, int):
+                            self.projectiles.append(result)
+                
+                for projectile in self.projectiles[:]:
+                    projectile.update(all_active_enemies)
+                    if not projectile.active:
+                        self.projectiles.remove(projectile)
+                
+                # Check if wave is complete
+                if self.current_wave.completed:
+                    self.reverse_state = "wave_complete"
+        
+        elif self.reverse_state == "wave_complete":
+            # Wave finished, prepare for next wave
+            # Waiting for player to start next wave
+            pass
     
     def draw(self):
         """Draw everything"""
