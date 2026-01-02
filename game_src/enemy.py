@@ -327,14 +327,14 @@ class Enemy:
             # Summoner spawning
             if self.is_summoner and hasattr(self, 'summon_timer'):
                 self.summon_timer += 1
-                if self.summon_timer >= self.summon_cooldown:
+                if self.summon_timer >= self.summon_delay:
                     self.summon_timer = 0
                     self.should_summon = True  # Flag for wave to spawn minion
             
             # Flying Fortress spawning
             if self.is_fortress and hasattr(self, 'spawn_timer'):
                 self.spawn_timer += 1
-                if self.spawn_timer >= self.spawn_cooldown:
+                if self.spawn_timer >= self.spawn_delay:
                     self.spawn_timer = 0
                     self.should_spawn_ground = True  # Flag for wave to spawn ground unit
             
