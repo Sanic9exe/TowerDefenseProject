@@ -238,7 +238,7 @@ class Tower:
             self.drone_spawn_timer += 1
             if self.drone_spawn_timer >= self.drone_spawn_delay and self.cooldown <= 0:
                 # Find all enemies in range
-                targets_in_range = [e for e in enemies if self.distance_to(e) <= self.range 
+                targets_in_range = [e for e in enemies if self.position.distance_to(e.position) <= self.range 
                                    and (not e.is_air or self.can_hit_air)]
                 if targets_in_range:
                     # Spawn 2-3 drones targeting different enemies
@@ -260,7 +260,7 @@ class Tower:
         if self.tower_type == "flamethrower":
             if self.cooldown <= 0:
                 # Find all enemies in range
-                targets_in_range = [e for e in enemies if self.distance_to(e) <= self.range 
+                targets_in_range = [e for e in enemies if self.position.distance_to(e.position) <= self.range 
                                    and not e.is_air]  # Flamethrower can't hit air
                 
                 if targets_in_range:
