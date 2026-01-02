@@ -98,7 +98,7 @@ class Projectile:
                                      int(self.splash_radius * 0.3), 1)
             elif self.tower_type == "cannon":
                 color = DARK_GRAY
-            elif self.tower_type == "drone":
+            elif self.tower_type == "drone_swarm":
                 color = (150, 150, 200)
             elif self.tower_type == "railgun":
                 color = (0, 255, 255)

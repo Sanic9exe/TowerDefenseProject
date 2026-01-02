@@ -190,7 +190,9 @@ class TestMode:
                         import random
                         target = random.choice(enemy_list)
                         from projectile import Projectile
-                        drone = Projectile(tower.x, tower.y, target, tower.damage, "drone")
+                        # Properly instantiate drone projectile with all required parameters
+                        drone = Projectile(tower.position.x, tower.position.y, target, 
+                                          tower.damage, tower.projectile_speed, "drone_swarm")
                         self.projectiles.append(drone)
                     tower.drone_spawn_timer = 0
         
