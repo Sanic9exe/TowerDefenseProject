@@ -56,7 +56,7 @@ TOWER_COSTS = {
 TARGETING_MODES = ["closest", "strongest", "weakest", "first", "last", "nearest_exit"]
 
 # Game speed multipliers
-SPEED_OPTIONS = [1, 2, 3]
+SPEED_OPTIONS = [1, 2, 3, 5, 10]
 
 # Barrier settings
 BARRIER_COST = 50
