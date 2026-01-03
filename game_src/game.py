@@ -659,10 +659,10 @@ class Game:
                     if enemy_type == "swarm":
                         # Spawn 5 swarm units
                         for _ in range(5):
-                            enemy = Enemy(enemy_type, self.current_paths[0], self.difficulty)
+                            enemy = Enemy(self.current_paths[0], enemy_type, self.difficulty)
                             self.current_wave.enemies.append(enemy)
                     else:
-                        enemy = Enemy(enemy_type, self.current_paths[0], self.difficulty)
+                        enemy = Enemy(self.current_paths[0], enemy_type, self.difficulty)
                         self.current_wave.enemies.append(enemy)
                     
                     self.reverse_spawned += 1
