@@ -630,11 +630,14 @@ class Game:
             if self.ai_controller:
                 self.ai_controller.update_budget(self.wave_number)
                 # AI places towers
-                new_towers = self.ai_controller.place_towers()
-                for tower_type, grid_x, grid_y in new_towers:
-                    tower = Tower(grid_x, grid_y, tower_type)
-                    self.towers.append(tower)
-                    self.grid[grid_x][grid_y] = tower
+                actions = self.ai_controller.place_towers()
+                for action_type, data in actions:
+                    if action_type == "place_tower":
+                        grid_x, grid_y = data["grid_pos"]
+                        tower_type = data["type"]
+                        tower = Tower(grid_x, grid_y, tower_type)
+                        self.towers.append(tower)
+                        self.grid[grid_x][grid_y] = tower
             
             # Transition to wave active
             self.reverse_state = "wave_active"
