@@ -547,8 +547,8 @@ class Game:
                 # Check for escaped enemies
                 escaped = wave.get_escaped_enemies()
                 for enemy in escaped:
-                    # Decoy fakes only take half a life
-                    if hasattr(enemy, 'is_decoy_fake') and enemy.is_decoy_fake:
+                    # Decoy fake enemies (is_decoy=True, is_real=False) do half damage
+                    if hasattr(enemy, 'is_decoy') and enemy.is_decoy and hasattr(enemy, 'is_real') and not enemy.is_real:
                         self.lives -= 0.5
                     else:
                         self.lives -= 1
@@ -656,13 +656,15 @@ class Game:
                 self.reverse_spawn_timer += 1
                 if self.reverse_spawn_timer >= 30:  # Spawn every 0.5 seconds
                     enemy_type = self.reverse_queue[self.reverse_spawned]
+                    # Get numeric difficulty multiplier instead of string
+                    diff_mult = DIFFICULTY_MODIFIERS[self.difficulty]["enemy_health"]
                     if enemy_type == "swarm":
                         # Spawn 5 swarm units
                         for _ in range(5):
-                            enemy = Enemy(self.current_paths[0], enemy_type, self.difficulty)
+                            enemy = Enemy(self.current_paths[0], enemy_type, diff_mult)
                             self.current_wave.enemies.append(enemy)
                     else:
-                        enemy = Enemy(self.current_paths[0], enemy_type, self.difficulty)
+                        enemy = Enemy(self.current_paths[0], enemy_type, diff_mult)
                         self.current_wave.enemies.append(enemy)
                     
                     self.reverse_spawned += 1
